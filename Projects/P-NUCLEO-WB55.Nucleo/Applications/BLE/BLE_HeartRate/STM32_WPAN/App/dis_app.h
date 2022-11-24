@@ -49,8 +49,8 @@ extern "C" {
 /* USER CODE END EV */
 
 /* Exported macros -----------------------------------------------------------*/
-#define DISAPP_MANUFACTURER_NAME              "STM"
-#define DISAPP_MODEL_NUMBER                   "4502-1.0"
+#define DISAPP_MANUFACTURER_NAME              "OB"
+#define DISAPP_MODEL_NUMBER                   "Olly Dek Kit"
 #define DISAPP_SERIAL_NUMBER                  "1.0"
 #define DISAPP_HARDWARE_REVISION_NUMBER       "1.0"
 #define DISAPP_FIRMWARE_REVISION_NUMBER       "1.0"

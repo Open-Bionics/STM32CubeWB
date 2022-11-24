@@ -1090,6 +1090,9 @@
           <file>
             <name>$PROJ_DIR$\..\STM32_WPAN\App\hrs_app.c</name>
           </file>
+          <file>
+            <name>$PROJ_DIR$\..\STM32_WPAN\App\obs_app.c</name>
+          </file>
         </group>
         <group>
           <name>Target</name>

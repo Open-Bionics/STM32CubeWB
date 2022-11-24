@@ -35,6 +35,7 @@
 
 #include "hrs_app.h"
 #include "dis_app.h"
+#include "obs_app.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -372,6 +373,9 @@ void APP_BLE_Init(void)
   HRSAPP_Init();
 
   /* USER CODE BEGIN APP_BLE_Init_3 */
+
+  // init custom OB service
+  OBSAPP_Init();
 
   /* USER CODE END APP_BLE_Init_3 */
 

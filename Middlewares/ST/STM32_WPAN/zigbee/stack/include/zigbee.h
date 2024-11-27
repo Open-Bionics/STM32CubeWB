@@ -1,8 +1,9 @@
 /**
  * @file zigbee.h
+ * @heading Zigbee Utilities
  * @brief Zigbee header file.
  * @author Exegin Technologies
- * @copyright Copyright [2009 - 2021] Exegin Technologies Limited. All rights reserved.
+ * @copyright Copyright [2009 - 2023] Exegin Technologies Limited. All rights reserved.
  *
  * This file groups global/external definitions from all the layer specific header files
  * e.g, aps, nwk, zdo etc... into a single place, so that one can just include zigbee.h for
@@ -69,11 +70,13 @@ struct WpanPublicT;
 /* A subset of WPAN_CHANNELMASK_2400MHZ (HA and SE preferred channels) */
 #define ZB_CHANNELMASK_2400MHZ_HA       0x0318C800U /* Channels 11, 14, 15, 19, 20, 24, 25 */
 
-/* A predefined time to let the stack run in order to send a response, before
- * proceeding to the next step. This is used to either prevent potential contention
- * on the RF or if a packet must be sent before the stack parameters are modified
- * or reset. */
-#define ZB_TIMER_DELAY_FOR_RESPONSE     200U
+/* Define a constant maximum allocation size for both zigbee.mem.heap.c and
+ * zigbee.mem.pool.c so both have the same behaviour. The memory pool has a max
+ * allocation size of 2048 minus some overhead (should be >= 2016 bytes).
+ * NOTE: The max allocation is not the total size of the heap, only the
+ * largest chunk of data we can allocate from it at a time.
+ * If we define both implementation limits to be 2000, we should be safe. */
+#define ZB_HEAP_MAX_ALLOC                   2000U
 
 /* ZigBee Status Codes */
 enum ZbStatusCodeT {
@@ -217,17 +220,12 @@ enum ZbTcsoStatusT {
 #define ZB_LOG_MASK_APS_FRAG            0x00000800U /* APS fragmentation debugging */
 /* ZDO */
 #define ZB_LOG_MASK_ZDO_ANNCE           0x00001000U /* Print on reception of ZDO Device_Annce */
-/* ZCL */
 #define ZB_LOG_MASK_ZCL                 0x00002000U
-/* Green Power */
 #define ZB_LOG_MASK_GREENPOWER          0x00004000U
-/* Diagnostics */
 #define ZB_LOG_MASK_DIAG                0x00008000U
-/* ZbHeapAlloc / ZbHeapFree debugging */
 #define ZB_LOG_MASK_HEAP                0x00010000U
-/* ZbTimer */
 #define ZB_LOG_MASK_TIMER               0x00020000U
-/* MAC */
+#define ZB_LOG_MASK_SLEEPY              0x01000000U /* Sleepy (e.g. Polling) */
 #define ZB_LOG_MASK_MAC_RSSI            0x10000000U /* Print debug message per MCPS-DATA.indication showing RSSI */
 
 /* Log mask helpers */
@@ -555,52 +553,6 @@ void ZbShutdown(struct ZigBeeT *zb);
 enum ZbStatusCodeT ZbStatePause(struct ZigBeeT *zb, void (*callback)(void *arg), void *arg);
 enum ZbStatusCodeT ZbStateResume(struct ZigBeeT *zb);
 
-/*---------------------------------------------------------------
- * Test Case Hooks
- *---------------------------------------------------------------
- */
-/* These represent bits in a 32-bit bitmask. */
-enum ZbTestcaseT {
-    ZB_TESTCASE_NONE = 0,
-    ZB_TESTCASE_SE1X_15_47, /* Server sends a truncated INITIATE_KEY response */
-    ZB_TESTCASE_SE1X_15_48, /* Client sends a truncated EPHEMERAL_DATA request */
-    ZB_TESTCASE_CBKE_DELAY_EPH_DATA, /* e.g. SE 1.4 test case 15.25 */
-    ZB_TESTCASE_CBKE_DELAY_RESPONSE, /* e.g. SE 1.4 test case 15.26 */
-    ZB_TESTCASE_NWK_ENH_BEACON_REQ_06, /* Bogus EBR */
-    /* Override tx power management in the MAC and always set a minimum
-     * power level. Useful for co-ax testing to prevent cross-talk. */
-    ZB_TESTCASE_NWK_ENH_BEACON_MIN_TX_POWER,
-    ZB_TESTCASE_NWK_ENH_BEACON_REQ_DROP,
-    ZB_TESTCASE_NWK_STD_BEACON_REQ_DROP,
-    ZB_TESTCASE_NWK_LINKPOWER_DROP_NOTIFY,
-    ZB_TESTCASE_NWK_LINKPOWER_DROP_REQUEST,
-    ZB_TESTCASE_NWK_REJOIN_DROP_RSP,
-    ZB_TESTCASE_NWK_REJOIN_RETURN_FULL,
-    ZB_TESTCASE_NWK_EDKA_DROP_REQUEST,
-    ZB_TESTCASE_NWK_ASSOC_RSP_FULL,
-    ZB_TESTCASE_NWK_ROUTE_THRU_NNT_IGNORE_COST, /*  */
-    ZB_TESTCASE_NWK_FC_MAX_ALLOW,
-    ZB_TESTCASE_DLK_NOT_ALLOWED,
-    ZB_TESTCASE_DLK_INVALID_KEY_NEGO_STATE,
-    ZB_TESTCASE_DLK_INVALID_TLV,
-    ZB_TESTCASE_DLK_MISSING_TLV,
-    ZB_TESTCASE_DLK_NO_TLV,
-    ZB_TESTCASE_DLK_OUT_OF_ORDER_TLVS,
-    ZB_TESTCASE_APS_REQUEST_KEY_DROP,
-    ZB_TESTCASE_APS_DISABLE_FC_SYNC,
-    ZB_TESTCASE_ZDO_SEC_CHLNG_WITH_EXTRA_TLVS,
-    ZB_TESTCASE_TOUCHLINK_DEBUG_KEY,
-    ZB_TESTCASE_ZED_STACK_SHUTDOWN
-};
-
-/* External API */
-void ZbTestCaseEnable(struct ZigBeeT *zb, enum ZbTestcaseT testcase);
-void ZbTestCaseDisable(struct ZigBeeT *zb, enum ZbTestcaseT testcase);
-void ZbTestCaseClear(struct ZigBeeT *zb);
-uint32_t ZbTestCaseCurrent(struct ZigBeeT *zb);
-
-/* Should only be required for the stack */
-bool ZbTestCaseIsEnabled(struct ZigBeeT *zb, enum ZbTestcaseT testcase);
 
 /*---------------------------------------------------------------
  * Misc. Helper Functions
@@ -624,6 +576,19 @@ int zb_hex_str_to_bin(const char *string, void *out, unsigned int maxlen);
 unsigned int zb_hex_bin_to_str(const uint8_t *in_data, unsigned int in_len, char *out_str, unsigned int max_len,
     const char delimiter, unsigned int interval);
 
+/*---------------------------------------------------------------
+ * Misc Debug (may not be available on all platforms)
+ *---------------------------------------------------------------
+ */
+void ZbDebugMemory(struct ZigBeeT *zb);
+void ZbDebugInfo(struct ZigBeeT *zb);
+
+/*---------------------------------------------------------------
+ * Misc Debug (may not be available on all platforms)
+ *---------------------------------------------------------------
+ */
+
+uint8_t  MacSetPropStrictDataPollReq(uint8_t val);
 /*---------------------------------------------------------------
  * Additional Layer Includes
  *---------------------------------------------------------------

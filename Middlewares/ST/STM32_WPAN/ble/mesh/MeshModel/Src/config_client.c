@@ -50,7 +50,8 @@ __attribute__((aligned(4)))Elements_Page0_t aNodeElements[CLIENT_MAX_ELEMENTS_PE
 /* ALIGN(4)*/
 __attribute__((aligned(4)))NodeInfo_t NodeInfo;
 
-const MODEL_OpcodeTableParam_t Config_Client_Opcodes_Table[] = {
+const MODEL_OpcodeTableParam_t Config_Client_Opcodes_Table[] = 
+{
   /*    MOBLEUINT32 opcode, MOBLEBOOL reliable, MOBLEUINT16 min_payload_size, 
   MOBLEUINT16 max_payload_size;
   Here in this array, Handler is not defined; */
@@ -291,7 +292,7 @@ MOBLE_RESULT ConfigClient_CompositionDataStatusResponse(MOBLEUINT8 const *pSrcCo
 
     /******************* Copy the SIG Models **********************************/    
     /* Prepare the variables to find the number of SIG Models, SInce header is already copied,
-       it can use used directly for the comparision */
+       it can use used directly for the comparison */
     /* This is to be used for running the loop for data copy */
       
     if (length >= (parsedDataLength+2))
@@ -445,7 +446,7 @@ MOBLEUINT32 GetVendorModelFromCompositionData(MOBLEUINT8 elementIdx, MOBLEUINT8 
   MOBLEUINT32 model;
 
   model = aNodeElements[elementIdx].aVendorModels[idxVendor]; 
-  /* Maybe little endien conversion may be needed */
+  /* Maybe little endian conversion may be needed */
   
   return model;
 }
@@ -810,13 +811,21 @@ MOBLE_RESULT ConfigClient_PublicationSet (MOBLEUINT16 elementAddress,
   if ((elementAddress >= self_addr) && (elementAddress < (self_addr+APPLICATION_NUMBER_OF_ELEMENTS)) )
   {
     /* Provisioner needs to be configured */
-    ConfigModel_SelfPublishConfig(elementAddress,
+    result = ConfigModel_SelfPublishConfig(elementAddress,
                                          msg_opcode,pConfigData,dataLength);
+    if(result)
+    {
+      TRACE_I(TF_CONFIG_CLIENT_M, "Failed to Set Publication in Mesh library\r\n");
+    }
   }
   else
   {
     /* Node address to be configured */
-    ConfigClientModel_SendMessage(elementAddress,msg_opcode,pConfigData,dataLength);
+    result = ConfigClientModel_SendMessage(elementAddress,msg_opcode,pConfigData,dataLength);
+    if(result)
+    {
+      TRACE_I(TF_CONFIG_CLIENT_M, "Failed to send Node address to be configured message\r\n");
+    }
   }
 
   return result;
@@ -999,12 +1008,12 @@ Config Model Subscription Status message.
   if ((elementAddress >= self_addr) && (elementAddress < (self_addr+APPLICATION_NUMBER_OF_ELEMENTS)) )
   {
     /* Provisioner needs to be configured */
-    ConfigModel_SelfSubscriptionConfig(elementAddress,
+    result = ConfigModel_SelfSubscriptionConfig(elementAddress,
                                               msg_opcode,pConfigData,dataLength);
   }
   else
   {
-    ConfigClientModel_SendMessage(elementAddress,msg_opcode,pConfigData,dataLength);  
+    result = ConfigClientModel_SendMessage(elementAddress,msg_opcode,pConfigData,dataLength);  
   }
   
   return result;
@@ -1232,13 +1241,21 @@ The response to a Config Model App Bind message is a Config Model App Status mes
   if ((elementAddress >= self_addr) && (elementAddress < (self_addr+APPLICATION_NUMBER_OF_ELEMENTS)) )
   {
     /* Provisioner needs to be configured */
-    ConfigClient_SelfModelAppBindConfig(self_addr,
+    result = ConfigClient_SelfModelAppBindConfig(self_addr,
                                         msg_opcode,pConfigData,dataLength);
+    if(result)
+    {
+      TRACE_I(TF_PROVISION,"Failed to Send Application binding to the provisioner\r\n");
+    }
   }
   else
   {
     /* Node address to be configured */
-    ConfigClientModel_SendMessage(elementAddress,msg_opcode,pConfigData,dataLength);
+    result = ConfigClientModel_SendMessage(elementAddress,msg_opcode,pConfigData,dataLength);
+    if(result)
+    {
+      TRACE_I(TF_PROVISION,"Failed to Send message Node address to be configured\r\n");
+    }
   }
   
   return result;
@@ -1349,7 +1366,7 @@ There are no Parameters for this message.
 
   dst_peer = elementAddress; 
 
-  TRACE_M(TF_CONFIG_CLIENT_M, "Config Client Node Reset message  \r\n");   
+  TRACE_I(TF_CONFIG_CLIENT, "Config Client Node Reset message: to reset node and remove it from network\r\n");   
   if(ADDRESS_IS_UNASSIGNED(elementAddress))
   {
     return MOBLE_RESULT_INVALIDARG;
@@ -1429,7 +1446,12 @@ MOBLE_RESULT ApplicationGetConfigServerDeviceKey(MOBLE_ADDRESS src,
                                                  const MOBLEUINT8 **ppkeyTbUse)
 {
   MOBLE_RESULT result = MOBLE_RESULT_SUCCESS;  
+
+#if 0
   *ppkeyTbUse= GetNewProvNodeDevKey();
+#else
+  *ppkeyTbUse = (MOBLEUINT8 *)AppliPrvnNvm_GetNodeDevKey(src);
+#endif
   
   return result;  
 }
@@ -1462,7 +1484,7 @@ MOBLEUINT8 ConfigClient_ChkRetrialState (eServerRespRecdState_t* peRespRecdState
   nowClockTime = Clock_Time();
   if(( (nowClockTime - NodeInfo.Initial_time) >= CONFIGCLIENT_RESPONSE_TIMEOUT))
   {
-    /* Timeout occured, Do retry or enter the error state  */
+    /* Timeout occurred, Do retry or enter the error state  */
     NodeInfo.numberOfAttemptsTx++;
     
     if (NodeInfo.numberOfAttemptsTx >= CONFIGCLIENT_MAX_TRIALS)
@@ -1499,7 +1521,7 @@ MOBLEUINT8 ConfigClient_ChkRetries (void)
   nowClockTime = Clock_Time();
   if(( (nowClockTime - NodeInfo.Initial_time) >= CONFIGCLIENT_RESPONSE_TIMEOUT))
   {
-    /* Timeout occured, Do retry or enter the error state  */
+    /* Timeout occurred, Do retry or enter the error state  */
     NodeInfo.numberOfAttemptsTx++;
     
     if (NodeInfo.numberOfAttemptsTx >= CONFIGCLIENT_MAX_TRIALS)
@@ -1571,7 +1593,7 @@ from the library to send response to the message from peer
 * @param  plength: Pointer to the Length of the data, to be updated by application
 * @param  pRxData: Pointer to the data received in packet.
 * @param  dataLength: length of the data in packet.
-* @param  response: Value to indicate wheather message is acknowledged meassage or not.
+* @param  response: Value to indicate whether message is acknowledged meassage or not.
 * @retval MOBLE_RESULT
 */ 
 MOBLE_RESULT ConfigClientModel_GetStatusRequestCb(MODEL_MessageHeader_t *pmsgParam,
@@ -1612,7 +1634,7 @@ the library whenever a Generic Model message is received
 * @param  response: if TRUE, the message is an acknowledged message
 * @param  pRxData: Pointer to the data received in packet.
 * @param  dataLength: length of the data in packet.
-* @param  response: Value to indicate wheather message is acknowledged meassage or not.
+* @param  response: Value to indicate whether message is acknowledged meassage or not.
 * @retval MOBLE_RESULT
 */ 
 MOBLE_RESULT ConfigClientModel_ProcessMessageCb(MODEL_MessageHeader_t *pmsgParam, 

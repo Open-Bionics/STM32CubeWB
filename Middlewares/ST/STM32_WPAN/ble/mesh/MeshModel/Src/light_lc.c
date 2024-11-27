@@ -104,7 +104,7 @@ typedef struct
   MOBLEUINT32 luxLevelOut;
   /* Used to calculate intermediate lux value in transition */
   MOBLEUINT32 initialLightLuxOut;
-  /* Used to caluculate intermediate lux value in transition */
+  /* Used to calculate intermediate lux value in transition */
   MOBLEUINT32 targetLightLuxOut;
   /* Last lightness update tick in PI regulator */
   MOBLEUINT32 piLightnessUpdateTick;
@@ -174,12 +174,12 @@ typedef struct
 
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-#ifdef ENABLE_LIGHT_MODEL_SERVER_LC
 
 lc_param_t* LcServerP = NULL;
 
 MODEL_OpcodeTableParam_t Light_LC_Opcodes_Table[] = {
 /* model_id                       opcode                       reliable      min_payload_size max_payload_size response_opcode           min_response_size max_response_size */
+#ifdef ENABLE_LIGHT_MODEL_SERVER_LC
  {LIGHT_LC_SERVER_MODEL_ID,       LIGHT_LC_MODE_GET,           MOBLE_TRUE,   0,               0,               LIGHT_LC_MODE_STATUS  ,   1,                1},
  {LIGHT_LC_SERVER_MODEL_ID,       LIGHT_LC_MODE_SET,           MOBLE_TRUE,   1,               1,               LIGHT_LC_MODE_STATUS  ,   1,                1},
  {LIGHT_LC_SERVER_MODEL_ID,       LIGHT_LC_MODE_SET_UNACK,     MOBLE_FALSE,  1,               1,               LIGHT_LC_MODE_STATUS  ,   1,                1},
@@ -196,10 +196,12 @@ MODEL_OpcodeTableParam_t Light_LC_Opcodes_Table[] = {
  {LIGHT_LC_SETUP_SERVER_MODEL_ID, LIGHT_LC_PROPERTY_GET,       MOBLE_TRUE,   2,               2,               LIGHT_LC_PROPERTY_STATUS, 2,                10},
  {LIGHT_LC_SETUP_SERVER_MODEL_ID, LIGHT_LC_PROPERTY_SET,       MOBLE_TRUE,   2,               10,              LIGHT_LC_PROPERTY_STATUS, 2,                10},
  {LIGHT_LC_SETUP_SERVER_MODEL_ID, LIGHT_LC_PROPERTY_SET_UNACK, MOBLE_FALSE,  2,               10,              LIGHT_LC_PROPERTY_STATUS, 2,                10},
- {LIGHT_LC_SETUP_SERVER_MODEL_ID, LIGHT_LC_PROPERTY_STATUS,    MOBLE_FALSE,  2,               10,              0                       , 2,                10}, 
+ {LIGHT_LC_SETUP_SERVER_MODEL_ID, LIGHT_LC_PROPERTY_STATUS,    MOBLE_FALSE,  2,               10,              0                       , 2,                10}, #endif /* ENABLE_LIGHT_MODEL_SERVER_LC */#endif /* ENABLE_LIGHT_MODEL_SERVER_LC */
+#endif /* ENABLE_LIGHT_MODEL_SERVER_LC */
  {0}
 };
 
+#ifdef ENABLE_LIGHT_MODEL_SERVER_LC
 /* 
   Light LC property table
     Property ID
@@ -301,9 +303,7 @@ const light_lc_propertyId_t LC_PropertyId[LC_PROPERTY_TABLE_COUNT] =
   }
 };
 #else
-lc_param_t* LcServerP = NULL;
 const light_lc_propertyId_t* LC_PropertyId = NULL;
-const MODEL_OpcodeTableParam_t* Light_LC_Opcodes_Table = NULL;
 #endif /* ENABLE_LIGHT_MODEL_SERVER_LC */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -405,7 +405,7 @@ MOBLE_RESULT LightLcServer_GetOpcodeTableCb(const MODEL_OpcodeTableParam_t **dat
                                             MOBLEUINT16 *length)
 {
   *data = Light_LC_Opcodes_Table;
-  *length = sizeof(Light_LC_Opcodes_Table)/sizeof(MODEL_OpcodeTableParam_t);
+  *length = sizeof(Light_LC_Opcodes_Table)/sizeof(Light_LC_Opcodes_Table[0]);
   return MOBLE_RESULT_SUCCESS;
 }
 
@@ -420,7 +420,7 @@ MOBLE_RESULT LightLcServer_GetOpcodeTableCb(const MODEL_OpcodeTableParam_t **dat
   * @param  plength: Pointer to the Length of the data, to be updated by application
   * @param  pRxData: Pointer to the data received in packet.
   * @param  dataLength: length of the data in packet.
-  * @param  response: Value to indicate wheather message is acknowledged meassage or not.
+  * @param  response: Value to indicate whether message is acknowledged meassage or not.
   * @retval MOBLE_RESULT_SUCCESS
   */
 __weak
@@ -2287,7 +2287,7 @@ MOBLE_RESULT Light_LC_Fsm(lc_event_e event,
                                            LIGHT_CONTROL_TIME_RUN_ON_PID,
                                            LC_TIME_RUN_ON_PID_INDEX,
                                            &tempVal);
-        /* step resoultion = transition time to avoid intermediate trigger in run */
+        /* step resolution = transition time to avoid intermediate trigger in run */
         transitionEvent = Light_LC_TransitionUpdate
           (pLcParams, 0, 1, 0, tempVal, tempVal);
         
@@ -3207,7 +3207,7 @@ MOBLE_RESULT Light_LC_Fsm(lc_event_e event,
 /**
   * @brief  Light LC property table initialization
   * @param  Reference to LC parameters
-  * @retval Fail if proeprty id or index inappropriate, else success
+  * @retval Fail if property id or index inappropriate, else success
   */
 static
 MOBLE_RESULT Light_LC_PropertyTableInit(lc_param_t* pLcParams)
@@ -3433,8 +3433,8 @@ void LightLC_SaveModelStates(MOBLEUINT8 elementIndex,
   * @param  Binded Generic onPowerUp
   * @param  Binded Light Lightness Default
   * @param  Binded Light Lightness Last
-  * @param  Binded Light Lightness Acutal last known value
-  * @param  Reference to Light Acutal to be set
+  * @param  Binded Light Lightness Actual last known value
+  * @param  Reference to Light Actual to be set
   * @retval If set Light Actual to be updated
   */
 __weak
@@ -3659,7 +3659,7 @@ MOBLE_RESULT Light_LC_SetTransitionTimeZero(MOBLEUINT8 elementIndex)
   *         MOTION_SENSED_PID, PEOPLE_COUNT_PID, PRESENCE_DETECTED_PID,
   *         TIME_SINCE_MOTION_SENSED_PID and PRESENT_AMBIENT_LIGHT_LEVEL_PID
   *         Used for reporting occupancy sensing
-  *         Mandatory requirement for LC Server to process sensor client with these porperty IDs
+  *         Mandatory requirement for LC Server to process sensor client with these property IDs
   * @param  Targeted LC Server lement index
   * @param  Property id
   * @param  Property value
@@ -3821,7 +3821,7 @@ void Light_LC_LigtnessLinearUnsolicitedChange(MOBLEUINT8 lightnessLinearelementI
   *         returns max time after which call to process Light_LC_Process is required
   *         to adjust internal states or to adjust Light Lightness or to publish status
   * @param  None
-  * @retval sleep time in miliseconds
+  * @retval sleep time in milliseconds
   */
 __weak
 MOBLEUINT32 Light_LC_SleepDurationMs_Get(void)
@@ -4049,7 +4049,7 @@ MOBLE_RESULT Light_LCs_Init(void* lcsBuff,
       
       LcServerP->ambientLuxLevel = 0xFFFFFF; /* corresponds to value not known */
       
-      /* Retreiving property values from NVM pending */
+      /* Retrieving property values from NVM pending */
     }
   }
   
@@ -4082,7 +4082,7 @@ MOBLE_RESULT Light_LCs_Init(void* lcsBuff,
   * @param  Generic On Off Server elements as defined by user
   * @param  Generic On Off Setup Server elements as defined by user
   * @param  Light Lightness Server elements as defined by user
-  * @retval Success if dependcies are appropriate
+  * @retval Success if dependencies are appropriate
   */
 __weak
 MOBLE_RESULT ExtractLcServerElementIndex(MOBLEUINT8* pLcsElementIndex,
@@ -4099,7 +4099,7 @@ MOBLE_RESULT ExtractLcServerElementIndex(MOBLEUINT8* pLcsElementIndex,
   if(noOfElements < 2)
   {
     result = MOBLE_RESULT_FAIL;
-    TRACE_M(TF_LIGHT_LC_M, "Atleast 2 elements are required for LC server\r\n");
+    TRACE_M(TF_LIGHT_LC_M, "At least 2 elements are required for LC server\r\n");
   }
   else
   {

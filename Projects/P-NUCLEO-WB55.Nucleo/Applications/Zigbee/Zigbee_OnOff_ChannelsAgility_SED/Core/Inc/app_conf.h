@@ -203,8 +203,8 @@ typedef enum
  * Debug
  ******************************************************************************/
 /**
- * When set, this resets some hw resources to set the device in the same state than the power up
- * The FW resets only register that may prevent the FW to run properly
+ * When set, this resets some hw resources to put the device in the same state as at power up.
+ * It resets only register that may prevent the FW to run properly.
  *
  * This shall be set to 0 in a final product
  *
@@ -286,7 +286,7 @@ typedef enum
  * When CFG_BUTTON_SUPPORTED is set, the push button are activated if requested
  ******************************************************************************/
 #if (CFG_FULL_LOW_POWER == 1)
-#define CFG_LED_SUPPORTED         0
+#define CFG_LED_SUPPORTED         1
 #define CFG_BUTTON_SUPPORTED      0
 #else
 #define CFG_LED_SUPPORTED         1

@@ -69,6 +69,9 @@ static void APP_ZIGBEE_CheckWirelessFirmwareInfo(void);
 static void Wait_Getting_Ack_From_M0(void);
 static void Receive_Ack_From_M0(void);
 static void Receive_Notification_From_M0(void);
+static void APP_ZIGBEE_ProcessNotifyM0ToM4(void);
+static void APP_ZIGBEE_ProcessRequestM0ToM4(void);
+
 
 /* Private variables -----------------------------------------------*/
 static TL_CmdPacket_t *p_ZIGBEE_otcmdbuffer;
@@ -188,22 +191,23 @@ static enum ZclStatusCodeT APP_ZIGBEE_Commissioning_SaveStartup_cb(struct ZbZclC
   APP_DBG("SaveStartup request received.");
   
   /* Check boundary */
-  if(index>MAX_CONFIG_TAB_SIZE){
+  if(index>=MAX_CONFIG_TAB_SIZE){
     APP_DBG("Error, index out of bound.\n");
     rsp.status = ZCL_STATUS_FAILURE; 
   }
-  
-  /* Get the current network configuration from Commissioning server attributes */
-  status = ZbZclCommissionServerGetStartup(zigbee_app_info.commissioning_server, &currentConfig);
-  if(status!=ZCL_STATUS_SUCCESS){
-    APP_DBG("Error, ZbZclCommissionServerGetStartup failed.\n");
-    rsp.status = status;
-  } else {
-    APP_DBG("Configuration saved with index %d.\n", req->index);
-    
-    /* Save the current network configuration */
-    memset(&SavedConfigTab[index], 0, sizeof(struct ZbStartupT));
-    SavedConfigTab[index] = currentConfig;
+  else {
+      /* Get the current network configuration from Commissioning server attributes */
+      status = ZbZclCommissionServerGetStartup(zigbee_app_info.commissioning_server, &currentConfig);
+      if(status!=ZCL_STATUS_SUCCESS){
+        APP_DBG("Error, ZbZclCommissionServerGetStartup failed.\n");
+        rsp.status = status;
+      } else {
+        APP_DBG("Configuration saved with index %d.\n", req->index);
+
+        /* Save the current network configuration */
+        memset(&SavedConfigTab[index], 0, sizeof(struct ZbStartupT));
+        SavedConfigTab[index] = currentConfig;
+      }
   }
   
   (void) ZbZclCommissionServerSendSaveStartupRsp(zigbee_app_info.commissioning_server, srcInfo, &rsp);
@@ -227,18 +231,19 @@ static enum ZclStatusCodeT APP_ZIGBEE_Commissioning_RestoreStartup_cb(struct ZbZ
   
   APP_DBG("RestoreStartup request received."); 
   
-  if(index>MAX_CONFIG_TAB_SIZE){
+  if(index>=MAX_CONFIG_TAB_SIZE){
     APP_DBG("Error, index out of bound.\n");
     rsp.status = ZCL_STATUS_FAILURE; 
   }
-  
-  /* Set the Commissioning server attributes to the values present at the requested index */
-  status = ZbZclCommissionServerSetStartup(zigbee_app_info.commissioning_server, &SavedConfigTab[index]);
-  if(status!=ZCL_STATUS_SUCCESS){
-    APP_DBG("Error, ZbZclCommissionServerSetStartup failed.\n");
-    rsp.status = status;
-  } else {
-    APP_DBG("Startup parameters restored with index %d.\n", index);
+  else {
+      /* Set the Commissioning server attributes to the values present at the requested index */
+      status = ZbZclCommissionServerSetStartup(zigbee_app_info.commissioning_server, &SavedConfigTab[index]);
+      if(status!=ZCL_STATUS_SUCCESS){
+        APP_DBG("Error, ZbZclCommissionServerSetStartup failed.\n");
+        rsp.status = status;
+      } else {
+        APP_DBG("Startup parameters restored with index %d.\n", index);
+      }
   }
   
   (void) ZbZclCommissionServerSendRestoreStartupRsp(zigbee_app_info.commissioning_server, srcInfo, &rsp);
@@ -601,8 +606,9 @@ enum ZbStatusCodeT ZbStartupWait(struct ZigBeeT *zb, struct ZbStartupT *config)
 
   info->active = true;
   status = ZbStartup(zb, config, ZbStartupWaitCb, info);
-  if (status != ZB_STATUS_SUCCESS) {
-    info->active = false;
+  if (status != ZB_STATUS_SUCCESS)
+  {
+    free(info);
     return status;
   }
   UTIL_SEQ_WaitEvt(EVENT_ZIGBEE_STARTUP_ENDED);
@@ -911,31 +917,27 @@ void APP_ZIGBEE_TL_INIT(void)
  * @param  None
  * @retval None
  */
-void APP_ZIGBEE_ProcessNotifyM0ToM4(void)
+static void APP_ZIGBEE_ProcessNotifyM0ToM4(void)
 {
-    if (CptReceiveNotifyFromM0 != 0) {
-        /* If CptReceiveNotifyFromM0 is > 1. it means that we did not serve all the events from the radio */
-        if (CptReceiveNotifyFromM0 > 1U) {
-            APP_ZIGBEE_Error(ERR_REC_MULTI_MSG_FROM_M0, 0);
-        }
-        else {
-            Zigbee_CallBackProcessing();
-        }
-        /* Reset counter */
-        CptReceiveNotifyFromM0 = 0;
-    }
+  if (CptReceiveNotifyFromM0 != 0)
+  {
+    /* Reset counter */
+    CptReceiveNotifyFromM0 = 0;
+    Zigbee_CallBackProcessing();
+  }
 }
 
 /**
  * @brief Process the requests coming from the M0.
- * @param
- * @return
+ * @param None
+ * @return None
  */
-void APP_ZIGBEE_ProcessRequestM0ToM4(void)
+static void APP_ZIGBEE_ProcessRequestM0ToM4(void)
 {
-    if (CptReceiveRequestFromM0 != 0) {
-        Zigbee_M0RequestProcessing();
+    if (CptReceiveRequestFromM0 != 0)
+    {
         CptReceiveRequestFromM0 = 0;
+        Zigbee_M0RequestProcessing();
     }
 }
 

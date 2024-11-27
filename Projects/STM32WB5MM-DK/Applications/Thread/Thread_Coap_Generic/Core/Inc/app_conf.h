@@ -201,8 +201,8 @@ typedef enum
  * Debug
  ******************************************************************************/
 /**
- * When set, this resets some hw resources to set the device in the same state than the power up
- * The FW resets only register that may prevent the FW to run properly
+ * When set, this resets some hw resources to put the device in the same state as at power up.
+ * It resets only register that may prevent the FW to run properly.
  *
  * This shall be set to 0 in a final product
  *
@@ -305,11 +305,14 @@ typedef enum
   CFG_TASK_MSG_FROM_M0_TO_M4,
   CFG_TASK_SEND_CLI_TO_M0,
   CFG_TASK_SYSTEM_HCI_ASYNCH_EVT,
+  CFG_TASK_TRACE,
+  CFG_TASK_AMM_BCKGND,
 #if (CFG_USB_INTERFACE_ENABLE != 0)
   CFG_TASK_VCP_SEND_DATA,
 #endif /* (CFG_USB_INTERFACE_ENABLE != 0) */
   /* USER CODE BEGIN CFG_IdleTask_Id_t */
-  CFG_TASK_COAP_MSG_BUTTON,
+  CFG_TASK_BUTTON_SW1,
+  CFG_TASK_BUTTON_SW2,
   /* USER CODE END CFG_IdleTask_Id_t */
   CFG_TASK_NBR  /**< Shall be last in the list */
 } CFG_IdleTask_Id_t;
@@ -375,6 +378,14 @@ typedef enum
 #define CFG_OTP_BASE_ADDRESS    OTP_AREA_BASE
 
 #define CFG_OTP_END_ADRESS      OTP_AREA_END_ADDR
+
+/******************************************************************************
+ * MEMORY MANAGER
+
+******************************************************************************/
+#define CFG_AMM_VIRTUAL_MEMORY_NUMBER               (1U)
+#define CFG_AMM_VIRTUAL_APP_TRACE                   (1U)
+#define CFG_AMM_VIRTUAL_APP_TRACE_BUFFER_SIZE       (DBG_TRACE_MSG_QUEUE_SIZE / 4U)
 
 #endif /*APP_CONF_H */
 

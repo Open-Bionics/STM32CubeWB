@@ -246,7 +246,7 @@ typedef struct
   uint16_t L2CAP_Length;
   uint16_t Interval_Min;
   uint16_t Interval_Max;
-  uint16_t Slave_Latency;
+  uint16_t Latency;
   uint16_t Timeout_Multiplier;
 } APP_BLE_p2p_Conn_Update_req_t;
 
@@ -301,7 +301,7 @@ typedef struct
 
 /* Private variables ---------------------------------------------------------*/
 PLACE_IN_SECTION("MB_MEM1") ALIGN(4) static TL_CmdPacket_t BleCmdBuffer;
-#if (CFG_BLE_ADDRESS_TYPE == PUBLIC_ADDR)
+#if (CFG_BLE_ADDRESS_TYPE == GAP_PUBLIC_ADDR)
 static const uint8_t a_MBdAddr[BD_ADDR_SIZE_LOCAL] =
 {
   (uint8_t)((CFG_ADV_BD_ADDRESS & 0x0000000000FF)),
@@ -313,16 +313,16 @@ static const uint8_t a_MBdAddr[BD_ADDR_SIZE_LOCAL] =
 };
 
 static uint8_t a_BdAddrUdn[BD_ADDR_SIZE_LOCAL];
-#endif /* CFG_BLE_ADDRESS_TYPE == PUBLIC_ADDR */
+#endif /* CFG_BLE_ADDRESS_TYPE == GAP_PUBLIC_ADDR */
 /**
- *   Identity root key used to derive LTK and CSRK
+ *   Identity root key used to derive IRK and DHK(Legacy)
  */
-static const uint8_t a_BLE_CfgIrValue[16] = CFG_BLE_IRK;
+static const uint8_t a_BLE_CfgIrValue[16] = CFG_BLE_IR;
 
 /**
- * Encryption root key used to derive LTK and CSRK
+ * Encryption root key used to derive LTK(Legacy) and CSRK
  */
-static const uint8_t a_BLE_CfgErValue[16] = CFG_BLE_ERK;
+static const uint8_t a_BLE_CfgErValue[16] = CFG_BLE_ER;
 
 /**
  * BD Address of SERVER1 & SERVER 2 - to be connected once discovered
@@ -375,9 +375,9 @@ static void BLE_UserEvtRx(void * p_Payload);
 static void BLE_StatusNot(HCI_TL_CmdStatus_t Status);
 static void Ble_Tl_Init(void);
 static void Ble_Hci_Gap_Gatt_Init(void);
-#if (CFG_BLE_ADDRESS_TYPE == PUBLIC_ADDR)
+#if (CFG_BLE_ADDRESS_TYPE == GAP_PUBLIC_ADDR)
 static const uint8_t* BleGetBdAddress(void);
-#endif /*CFG_BLE_ADDRESS_TYPE == PUBLIC_ADDR */
+#endif /*CFG_BLE_ADDRESS_TYPE == GAP_PUBLIC_ADDR */
 static void Scan_Request(void);
 static void Evt_Notification(P2P_ConnHandle_Not_evt_t *pNotification);
 static void ConnReq1(void);
@@ -422,8 +422,8 @@ void APP_BLE_Init(void)
      CFG_BLE_PREPARE_WRITE_LIST_SIZE,
      CFG_BLE_MBLOCK_COUNT,
      CFG_BLE_MAX_ATT_MTU,
-     CFG_BLE_SLAVE_SCA,
-     CFG_BLE_MASTER_SCA,
+     CFG_BLE_PERIPHERAL_SCA,
+     CFG_BLE_CENTRAL_SCA,
      CFG_BLE_LS_SOURCE,
      CFG_BLE_MAX_CONN_EVENT_LENGTH,
      CFG_BLE_HSE_STARTUP_TIME,
@@ -438,7 +438,8 @@ void APP_BLE_Init(void)
      CFG_BLE_MAX_ADV_DATA_LEN,
      CFG_BLE_TX_PATH_COMPENS,
      CFG_BLE_RX_PATH_COMPENS,
-     CFG_BLE_CORE_VERSION
+     CFG_BLE_CORE_VERSION,
+     CFG_BLE_OPTIONS_EXT
     }
   };
 
@@ -648,13 +649,13 @@ SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification(void *p_Pckt)
           APP_BLE_p2p_Conn_Update_req.L2CAP_Length = pr->L2CAP_Length;
           APP_BLE_p2p_Conn_Update_req.Interval_Min = pr->Interval_Min;
           APP_BLE_p2p_Conn_Update_req.Interval_Max = pr->Interval_Max;
-          APP_BLE_p2p_Conn_Update_req.Slave_Latency = pr->Slave_Latency;
+          APP_BLE_p2p_Conn_Update_req.Latency = pr->Latency;
           APP_BLE_p2p_Conn_Update_req.Timeout_Multiplier = pr->Timeout_Multiplier;
 
           result = aci_l2cap_connection_parameter_update_resp(APP_BLE_p2p_Conn_Update_req.Connection_Handle,
                                                               APP_BLE_p2p_Conn_Update_req.Interval_Min,
                                                               APP_BLE_p2p_Conn_Update_req.Interval_Max,
-                                                              APP_BLE_p2p_Conn_Update_req.Slave_Latency,
+                                                              APP_BLE_p2p_Conn_Update_req.Latency,
                                                               APP_BLE_p2p_Conn_Update_req.Timeout_Multiplier,
                                                               CONN_L1,
                                                               CONN_L2,
@@ -831,7 +832,7 @@ SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification(void *p_Pckt)
           connection_handle = p_connection_complete_event->Connection_Handle;
           role = p_connection_complete_event->Role;
           if (role == 0x00)
-          { /* ROLE MASTER */
+          { /* ROLE CENTRAL */
 
             uint8_t dev1 = 1
 #if (CFG_P2P_DEMO_MULTI != 0)
@@ -1284,7 +1285,7 @@ static void Ble_Hci_Gap_Gatt_Init(void)
 
   const uint8_t *p_bd_addr;
 
-#if (CFG_BLE_ADDRESS_TYPE != PUBLIC_ADDR)
+#if (CFG_BLE_ADDRESS_TYPE != GAP_PUBLIC_ADDR)
   uint32_t a_srd_bd_addr[2] = {0,0};
 #endif
   uint16_t a_appearance[1] = {BLE_CFG_UNKNOWN_APPEARANCE};
@@ -1325,7 +1326,7 @@ static void Ble_Hci_Gap_Gatt_Init(void)
     APP_DBG_MSG("  Public Bluetooth Address: %02x:%02x:%02x:%02x:%02x:%02x\n",p_bd_addr[5],p_bd_addr[4],p_bd_addr[3],p_bd_addr[2],p_bd_addr[1],p_bd_addr[0]);
   }
 
-#if (CFG_BLE_ADDRESS_TYPE == PUBLIC_ADDR)
+#if (CFG_BLE_ADDRESS_TYPE == GAP_PUBLIC_ADDR)
   /* BLE MAC in ADV Packet */
   a_ManufData[ sizeof(a_ManufData)-6] = p_bd_addr[5];
   a_ManufData[ sizeof(a_ManufData)-5] = p_bd_addr[4];
@@ -1333,7 +1334,7 @@ static void Ble_Hci_Gap_Gatt_Init(void)
   a_ManufData[ sizeof(a_ManufData)-3] = p_bd_addr[2];
   a_ManufData[ sizeof(a_ManufData)-2] = p_bd_addr[1];
   a_ManufData[ sizeof(a_ManufData)-1] = p_bd_addr[0];
-#endif /* CFG_BLE_ADDRESS_TYPE == PUBLIC_ADDR */
+#endif /* CFG_BLE_ADDRESS_TYPE == GAP_PUBLIC_ADDR */
 
   /**
    * Static random Address
@@ -1383,7 +1384,7 @@ static void Ble_Hci_Gap_Gatt_Init(void)
   a_ManufData[ sizeof(a_ManufData)-1] = a_srd_bd_addr[0];
 #endif
 
-#if (CFG_BLE_ADDRESS_TYPE != PUBLIC_ADDR)
+#if (CFG_BLE_ADDRESS_TYPE != GAP_PUBLIC_ADDR)
   ret = aci_hal_write_config_data(CONFIG_DATA_RANDOM_ADDRESS_OFFSET, CONFIG_DATA_RANDOM_ADDRESS_LEN, (uint8_t*)a_srd_bd_addr);
   if (ret != BLE_STATUS_SUCCESS)
   {
@@ -1399,10 +1400,10 @@ static void Ble_Hci_Gap_Gatt_Init(void)
                                                                                (uint8_t)(a_srd_bd_addr[0] >> 8),
                                                                                (uint8_t)(a_srd_bd_addr[0]));
   }
-#endif /* CFG_BLE_ADDRESS_TYPE != PUBLIC_ADDR */
+#endif /* CFG_BLE_ADDRESS_TYPE != GAP_PUBLIC_ADDR */
 
   /**
-   * Write Identity root key used to derive LTK and CSRK
+   * Write Identity root key used to derive IRK and DHK(Legacy)
    */
   ret = aci_hal_write_config_data(CONFIG_DATA_IR_OFFSET, CONFIG_DATA_IR_LEN, (uint8_t*)a_BLE_CfgIrValue);
   if (ret != BLE_STATUS_SUCCESS)
@@ -1615,7 +1616,7 @@ static void Ble_Hci_Gap_Gatt_Init(void)
   /* USER CODE BEGIN APP_BLE_CONNECTED */
   BSP_LED_On(LED_BLUE);
   /* USER CODE END APP_BLE_CONNECTED */
-  result = aci_gap_start_general_discovery_proc(SCAN_P, SCAN_L, PUBLIC_ADDR, 1);
+  result = aci_gap_start_general_discovery_proc(SCAN_P, SCAN_L, GAP_PUBLIC_ADDR, 1);
   if (result == BLE_STATUS_SUCCESS)
   {
     /* USER CODE BEGIN BLE_SCAN_SUCCESS */
@@ -1705,9 +1706,9 @@ static void ConnReq1(void)
         result = aci_gap_create_connection(
         SCAN_P,
         SCAN_L,
-        PUBLIC_ADDR,
+        GAP_PUBLIC_ADDR,
         P2P_SERVER1_BDADDR,
-        PUBLIC_ADDR,
+        GAP_PUBLIC_ADDR,
         CONN_P1,
         CONN_P2,
         0,
@@ -1751,9 +1752,9 @@ static void ConnReq2(void)
     result = aci_gap_create_connection(
         SCAN_P,
         SCAN_L,
-        PUBLIC_ADDR,
+        GAP_PUBLIC_ADDR,
         P2P_SERVER2_BDADDR,
-        PUBLIC_ADDR,
+        GAP_PUBLIC_ADDR,
         CONN_P1,
         CONN_P2,
         0,
@@ -1791,9 +1792,9 @@ static void ConnReq3(void)
     result = aci_gap_create_connection(
         SCAN_P,
         SCAN_L,
-        PUBLIC_ADDR,
+        GAP_PUBLIC_ADDR,
         P2P_SERVER3_BDADDR,
-        PUBLIC_ADDR,
+        GAP_PUBLIC_ADDR,
         CONN_P1,
         CONN_P2,
         0,
@@ -1831,9 +1832,9 @@ static void ConnReq4(void)
     result = aci_gap_create_connection(
         SCAN_P,
         SCAN_L,
-        PUBLIC_ADDR,
+        GAP_PUBLIC_ADDR,
         P2P_SERVER4_BDADDR,
-        PUBLIC_ADDR,
+        GAP_PUBLIC_ADDR,
         CONN_P1,
         CONN_P2,
         0,
@@ -1871,9 +1872,9 @@ static void ConnReq5(void)
     result = aci_gap_create_connection(
         SCAN_P,
         SCAN_L,
-        PUBLIC_ADDR,
+        GAP_PUBLIC_ADDR,
         P2P_SERVER5_BDADDR,
-        PUBLIC_ADDR,
+        GAP_PUBLIC_ADDR,
         CONN_P1,
         CONN_P2,
         0,
@@ -1910,9 +1911,9 @@ static void ConnReq6(void)
     result = aci_gap_create_connection(
         SCAN_P,
         SCAN_L,
-        PUBLIC_ADDR,
+        GAP_PUBLIC_ADDR,
         P2P_SERVER6_BDADDR,
-        PUBLIC_ADDR,
+        GAP_PUBLIC_ADDR,
         CONN_P1,
         CONN_P2,
         0,
@@ -2050,7 +2051,7 @@ void Evt_Notification(P2P_ConnHandle_Not_evt_t *pNotification)
   return;
 }
 
-#if (CFG_BLE_ADDRESS_TYPE == PUBLIC_ADDR)
+#if (CFG_BLE_ADDRESS_TYPE == GAP_PUBLIC_ADDR)
 const uint8_t* BleGetBdAddress(void)
 {
   uint8_t *p_otp_addr;
@@ -2098,7 +2099,7 @@ const uint8_t* BleGetBdAddress(void)
 
   return p_bd_addr;
 }
-#endif /*CFG_BLE_ADDRESS_TYPE == PUBLIC_ADDR */
+#endif /*CFG_BLE_ADDRESS_TYPE == GAP_PUBLIC_ADDR */
 
 /* USER CODE BEGIN FD_LOCAL_FUNCTION */
 

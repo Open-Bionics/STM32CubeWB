@@ -202,19 +202,19 @@ static const uint8_t M_bd_addr[BD_ADDR_SIZE_LOCAL] =
 static uint8_t bd_addr_udn[BD_ADDR_SIZE_LOCAL];
 
 /**
-*   Identity root key used to derive LTK and CSRK 
+*   Identity root key used to derive IRK and DHK(Legacy) 
 */
-static const uint8_t BLE_CFG_IR_VALUE[16] = CFG_BLE_IRK;
+static const uint8_t BLE_CFG_IR_VALUE[16] = CFG_BLE_IR;
 
 /**
-* Encryption root key used to derive LTK and CSRK
+* Encryption root key used to derive LTK(Legacy) and CSRK
 */
-static const uint8_t BLE_CFG_ER_VALUE[16] = CFG_BLE_ERK;
+static const uint8_t BLE_CFG_ER_VALUE[16] = CFG_BLE_ER;
 
 static BleApplicationContext_t BleApplicationContext;
 static uint16_t AdvIntervalMin, AdvIntervalMax;
 
-P2PS_APP_ConnHandle_Not_evt_t handleNotification;
+P2PS_APP_ConnHandle_Not_evt_t HandleNotification;
 
 #if L2CAP_REQUEST_NEW_CONN_PARAM != 0
 #define SIZE_TAB_CONN_INT            2
@@ -386,8 +386,8 @@ void APP_BLE_Init_Dyn_1( void )
     CFG_BLE_PREPARE_WRITE_LIST_SIZE,
     CFG_BLE_MBLOCK_COUNT,
     CFG_BLE_MAX_ATT_MTU,
-    CFG_BLE_SLAVE_SCA,
-    CFG_BLE_MASTER_SCA,
+    CFG_BLE_PERIPHERAL_SCA,
+    CFG_BLE_CENTRAL_SCA,
     CFG_BLE_LS_SOURCE,
     CFG_BLE_MAX_CONN_EVENT_LENGTH,
     CFG_BLE_HSE_STARTUP_TIME,
@@ -493,22 +493,22 @@ void APP_BLE_Init_Dyn_2( void ) {
   return;
 }
 
-SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification( void *pckt )
+SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification( void *p_Pckt )
 {
-  hci_event_pckt *event_pckt;
-  evt_le_meta_event *meta_evt;
-  evt_blue_aci *blue_evt;
+  hci_event_pckt *p_event_pckt;
+  evt_le_meta_event *p_meta_evt;
+  evt_blecore_aci   *p_blecore_evt;
 
-  event_pckt = (hci_event_pckt*) ((hci_uart_pckt *) pckt)->data;
+  p_event_pckt = (hci_event_pckt*) ((hci_uart_pckt *) p_Pckt)->data;
 
-  switch (event_pckt->evt)
+  switch (p_event_pckt->evt)
   {
-    case EVT_DISCONN_COMPLETE:
+    case HCI_DISCONNECTION_COMPLETE_EVT_CODE:
     {
-      hci_disconnection_complete_event_rp0 *disconnection_complete_event;
-      disconnection_complete_event = (hci_disconnection_complete_event_rp0 *) event_pckt->data;
+      hci_disconnection_complete_event_rp0 *p_disconnection_complete_event;
+      p_disconnection_complete_event = (hci_disconnection_complete_event_rp0 *) p_event_pckt->data;
 
-      if (disconnection_complete_event->Connection_Handle == BleApplicationContext.BleApplicationContext_legacy.connectionHandle)
+      if (p_disconnection_complete_event->Connection_Handle == BleApplicationContext.BleApplicationContext_legacy.connectionHandle)
       {
         BleApplicationContext.BleApplicationContext_legacy.connectionHandle = 0;
         BleApplicationContext.Device_Connection_Status = APP_BLE_IDLE;
@@ -519,9 +519,9 @@ SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification( void *pckt )
  /*
 * SPECIFIC to P2P Server APP
 */     
-        handleNotification.P2P_Evt_Opcode = PEER_DISCON_HANDLE_EVT;
-        handleNotification.ConnectionHandle = BleApplicationContext.BleApplicationContext_legacy.connectionHandle;
-        P2PS_APP_Notification(&handleNotification);
+        HandleNotification.P2P_Evt_Opcode = PEER_DISCON_HANDLE_EVT;
+        HandleNotification.ConnectionHandle = BleApplicationContext.BleApplicationContext_legacy.connectionHandle;
+        P2PS_APP_Notification(&HandleNotification);
 
       /* USER CODE BEGIN EVT_DISCONN_COMPLETE */
 
@@ -530,29 +530,29 @@ SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification( void *pckt )
 
     break; /* EVT_DISCONN_COMPLETE */
 
-    case EVT_LE_META_EVENT:
+    case HCI_LE_META_EVT_CODE:
     {
-      meta_evt = (evt_le_meta_event*) event_pckt->data;
+      p_meta_evt = (evt_le_meta_event*) p_event_pckt->data;
       /* USER CODE BEGIN EVT_LE_META_EVENT */
 
       /* USER CODE END EVT_LE_META_EVENT */
-      switch (meta_evt->subevent)
+      switch (p_meta_evt->subevent)
       {
-        case EVT_LE_CONN_UPDATE_COMPLETE: 
+        case HCI_LE_CONNECTION_UPDATE_COMPLETE_SUBEVT_CODE:
           APP_DBG_MSG("\r\n\r** CONNECTION UPDATE EVENT WITH CLIENT \n");
           break;
-        case EVT_LE_CONN_COMPLETE:
+        case HCI_LE_CONNECTION_COMPLETE_SUBEVT_CODE:
           {
           hci_le_connection_complete_event_rp0 *connection_complete_event;
 
           /**
            * The connection is done, there is no need anymore to schedule the LP ADV
            */
-          connection_complete_event = (hci_le_connection_complete_event_rp0 *) meta_evt->data;
+          connection_complete_event = (hci_le_connection_complete_event_rp0 *) p_meta_evt->data;
           
           HW_TS_Stop(BleApplicationContext.Advertising_mgr_timer_Id);
 
-            APP_DBG_MSG("EVT_LE_CONN_COMPLETE for connection handle 0x%x\n",
+            APP_DBG_MSG("HCI_LE_CONNECTION_COMPLETE_SUBEVT_CODE for connection handle 0x%x\n",
                       connection_complete_event->Connection_Handle);
 
             if (BleApplicationContext.Device_Connection_Status == APP_BLE_LP_CONNECTING)
@@ -571,16 +571,16 @@ SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification( void *pckt )
  /*
 * SPECIFIC to P2P Server APP
 */             
-          handleNotification.P2P_Evt_Opcode = PEER_CONN_HANDLE_EVT;
-          handleNotification.ConnectionHandle = BleApplicationContext.BleApplicationContext_legacy.connectionHandle;
-          P2PS_APP_Notification(&handleNotification);
+          HandleNotification.P2P_Evt_Opcode = PEER_CONN_HANDLE_EVT;
+          HandleNotification.ConnectionHandle = BleApplicationContext.BleApplicationContext_legacy.connectionHandle;
+          P2PS_APP_Notification(&HandleNotification);
           /* USER CODE BEGIN HCI_EVT_LE_CONN_COMPLETE */
  /*
 * SPECIFIC to P2P Server APP
 */             
-          handleNotification.P2P_Evt_Opcode = PEER_CONN_HANDLE_EVT;
-          handleNotification.ConnectionHandle = BleApplicationContext.BleApplicationContext_legacy.connectionHandle;
-          P2PS_APP_Notification(&handleNotification);
+          HandleNotification.P2P_Evt_Opcode = PEER_CONN_HANDLE_EVT;
+          HandleNotification.ConnectionHandle = BleApplicationContext.BleApplicationContext_legacy.connectionHandle;
+          P2PS_APP_Notification(&HandleNotification);
 /**/
           /* USER CODE END HCI_EVT_LE_CONN_COMPLETE */
           }
@@ -595,12 +595,12 @@ SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification( void *pckt )
     }
     break; /* HCI_EVT_LE_META_EVENT */
 
-    case EVT_VENDOR:
-      blue_evt = (evt_blue_aci*) event_pckt->data;
+    case HCI_VENDOR_SPECIFIC_DEBUG_EVT_CODE:
+      p_blecore_evt = (evt_blecore_aci*) p_event_pckt->data;
       /* USER CODE BEGIN EVT_VENDOR */
 
       /* USER CODE END EVT_VENDOR */
-      switch (blue_evt->ecode)
+      switch (p_blecore_evt->ecode)
       {
       /* USER CODE BEGIN ecode */
 
@@ -608,7 +608,7 @@ SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification( void *pckt )
 /*
 * SPECIFIC to P2P Server APP
 */
-        case EVT_BLUE_L2CAP_CONNECTION_UPDATE_RESP:
+        case ACI_L2CAP_CONNECTION_UPDATE_RESP_VSEVT_CODE:
 #if (L2CAP_REQUEST_NEW_CONN_PARAM != 0 )
           mutex = 1;
 #endif
@@ -616,12 +616,12 @@ SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification( void *pckt )
 
       /* USER CODE END EVT_BLUE_L2CAP_CONNECTION_UPDATE_RESP */
       break;
-        case EVT_BLUE_GAP_PROCEDURE_COMPLETE:
-          APP_DBG_MSG("\r\n\r** EVT_BLUE_GAP_PROCEDURE_COMPLETE \n");
+        case ACI_GAP_PROC_COMPLETE_VSEVT_CODE:
+          APP_DBG_MSG("\r\n\r** ACI_GAP_PROC_COMPLETE_VSEVT_CODE \n");
         /* USER CODE BEGIN EVT_BLUE_GAP_PROCEDURE_COMPLETE */
 
         /* USER CODE END EVT_BLUE_GAP_PROCEDURE_COMPLETE */
-        break; /* EVT_BLUE_GAP_PROCEDURE_COMPLETE */
+        break; /* ACI_GAP_PROC_COMPLETE_VSEVT_CODE */
 #if(RADIO_ACTIVITY_EVENT != 0)
         case 0x0004:
         /* USER CODE BEGIN RADIO_ACTIVITY_EVENT*/
@@ -739,7 +739,7 @@ static void Ble_Tl_Init( void )
   aci_hal_write_config_data( CONFIG_DATA_RANDOM_ADDRESS_OFFSET, CONFIG_DATA_RANDOM_ADDRESS_LEN, (uint8_t*)srd_bd_addr );
 
   /**
-   * Write Identity root key used to derive LTK and CSRK 
+   * Write Identity root key used to derive IRK and DHK(Legacy) 
    */
     aci_hal_write_config_data( CONFIG_DATA_IR_OFFSET, CONFIG_DATA_IR_LEN, (uint8_t*)BLE_CFG_IR_VALUE );
     
@@ -885,7 +885,7 @@ static void Adv_Request(APP_BLE_ConnStatus_t New_Status)
         ADV_IND,
         Min_Inter,
         Max_Inter,
-        PUBLIC_ADDR,
+        GAP_PUBLIC_ADDR,
         NO_WHITE_LIST_USE, /* use white list */
         sizeof(local_name),
         (uint8_t*) &local_name,
@@ -1044,13 +1044,13 @@ void BLE_SVC_L2CAP_Conn_Update(uint16_t Connection_Handle)
     index_con_int = (index_con_int + 1)%SIZE_TAB_CONN_INT;
     uint16_t interval_min = CONN_P(tab_conn_interval[index_con_int]);
     uint16_t interval_max = CONN_P(tab_conn_interval[index_con_int]);
-    uint16_t slave_latency = L2CAP_SLAVE_LATENCY;
+    uint16_t peripheral_latency = L2CAP_PERIPHERAL_LATENCY;
     uint16_t timeout_multiplier = L2CAP_TIMEOUT_MULTIPLIER;
     tBleStatus result;
 
     result = aci_l2cap_connection_parameter_update_req(BleApplicationContext.BleApplicationContext_legacy.connectionHandle,
                                                        interval_min, interval_max,
-                                                       slave_latency, timeout_multiplier);
+                                                       peripheral_latency, timeout_multiplier);
     if( result == BLE_STATUS_SUCCESS )
     {
       APP_DBG_MSG("BLE_SVC_L2CAP_Conn_Update(), Successfully \r\n\r");
@@ -1096,18 +1096,18 @@ void hci_cmd_resp_wait(uint32_t timeout)
 static void BLE_UserEvtRx( void * pPayload )
 {
   SVCCTL_UserEvtFlowStatus_t svctl_return_status;
-  tHCI_UserEvtRxParam *pParam;
+  tHCI_UserEvtRxParam *p_param;
 
-  pParam = (tHCI_UserEvtRxParam *)pPayload; 
+  p_param = (tHCI_UserEvtRxParam *)pPayload; 
 
-  svctl_return_status = SVCCTL_UserEvtRx((void *)&(pParam->pckt->evtserial));
+  svctl_return_status = SVCCTL_UserEvtRx((void *)&(p_param->pckt->evtserial));
   if (svctl_return_status != SVCCTL_UserEvtFlowDisable)
   {
-    pParam->status = HCI_TL_UserEventFlow_Enable;
+    p_param->status = HCI_TL_UserEventFlow_Enable;
   }
   else
   {
-    pParam->status = HCI_TL_UserEventFlow_Disable;
+    p_param->status = HCI_TL_UserEventFlow_Disable;
   }
 }
 

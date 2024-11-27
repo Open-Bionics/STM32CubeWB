@@ -178,8 +178,8 @@ typedef enum
  * Debug
  ******************************************************************************/
 /**
- * When set, this resets some hw resources to set the device in the same state than the power up
- * The FW resets only register that may prevent the FW to run properly
+ * When set, this resets some hw resources to put the device in the same state as at power up.
+ * It resets only register that may prevent the FW to run properly.
  *
  * This shall be set to 0 in a final product
  *
@@ -286,6 +286,7 @@ typedef enum {
   CFG_TASK_ZIGBEE_OTA_SERVER_IMAGE_NOTIFY,
   CFG_TASK_BUTTON_SW1,
   CFG_TASK_BUTTON_SW2,
+  CFG_TASK_BUTTON_SW3,
 #if (CFG_USB_INTERFACE_ENABLE != 0)
   CFG_TASK_VCP_SEND_DATA,
 #endif /* (CFG_USB_INTERFACE_ENABLE != 0) */

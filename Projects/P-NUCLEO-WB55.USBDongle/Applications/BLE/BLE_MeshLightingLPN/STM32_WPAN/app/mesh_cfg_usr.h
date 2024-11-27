@@ -65,10 +65,10 @@
          for printf and scanf functionality */
 
 /* Enables the serial interface using Uart */
-#define ENABLE_SERIAL_INTERFACE                                                1
-#define ENABLE_SIG_MODELS_AT_COMMANDS                                          1
+#define ENABLE_SERIAL_INTERFACE                                                0
+#define ENABLE_SIG_MODELS_AT_COMMANDS                                          0
 #define ENABLE_VENDOR_MODELS_AT_COMMANDS                                       0
-#define ENABLE_UT                                                              1
+#define ENABLE_UT                                                              0
       
 /* Macros Used for user defined serial print data for models. 
 Either use 0 to disable or 1 to enable
@@ -493,7 +493,7 @@ For STMicroelectronics : it is 0x0030 */
 *  should be less than poll timeout
 *  100  ->  10s
 */
-#define LPN_FRIEND_POLL_FREQUENCY                                            25U
+#define LPN_FRIEND_POLL_FREQUENCY                                            20U/*25U*/
 
 /* 
 *  Minimum RSSI required by low power node

@@ -98,9 +98,17 @@ static void Button_Init(void);
 static void LCD_DisplayInit(void);
 
 /* Section specific to button management using UART */
+static void RxUART_Init(void);
+static void RxCpltCallback(void);
+static void UartCmdExecute(void);
+
 #define C_SIZE_CMD_STRING       256U
 #define RX_BUFFER_SIZE          8U
 
+static uint8_t aRxBuffer[RX_BUFFER_SIZE];
+static uint8_t CommandString[C_SIZE_CMD_STRING];
+static uint16_t indexReceiveChar = 0;
+EXTI_HandleTypeDef exti_handle;
 /* USER CODE END PFP */
 
 /* Functions Definition ------------------------------------------------------*/
@@ -140,6 +148,8 @@ void MX_APPE_Init( void )
   Led_Init();
   //Initialize user buttons
   Button_Init();
+  RxUART_Init();
+  
 /* USER CODE END MX_APPE_Init_1 */
   appe_Tl_Init();	/* Initialize all transport layers */
 
@@ -209,14 +219,9 @@ void LED_Deinit(void)
  */
 void LED_On(void)
 {
-  aPwmLedGsData_TypeDef aPwmLedGsData;
-
-  BSP_PWM_LED_Init();
-  aPwmLedGsData[PWM_LED_RED] = PWM_LED_GSDATA_99_9;
-  aPwmLedGsData[PWM_LED_GREEN] = PWM_LED_GSDATA_99_9;
-  aPwmLedGsData[PWM_LED_BLUE] = PWM_LED_GSDATA_99_9;
-  BSP_PWM_LED_On(aPwmLedGsData);
-  LED_Deinit();
+  LED_Set_rgb((uint8_t) PWM_LED_GSDATA_99_9,
+              (uint8_t) PWM_LED_GSDATA_99_9,
+              (uint8_t) PWM_LED_GSDATA_99_9);
 }
 
 /**
@@ -241,6 +246,7 @@ void LED_Set_rgb(uint8_t r, uint8_t g, uint8_t b)
   aPwmLedGsData_TypeDef aPwmLedGsData;
   
   BSP_PWM_LED_Init();
+  HAL_Delay(50);
   aPwmLedGsData[PWM_LED_RED] = r;
   aPwmLedGsData[PWM_LED_GREEN] = g;
   aPwmLedGsData[PWM_LED_BLUE] = b;
@@ -450,6 +456,7 @@ static void appe_Tl_Init( void )
   shci_init(APPE_SysUserEvtRx, (void*) &SHci_Tl_Init_Conf);
 
   /**< Memory Manager channel initialization */
+  memset(&tl_mm_config, 0, sizeof(TL_MM_Config_t));
   tl_mm_config.p_BleSpareEvtBuffer = 0;
   tl_mm_config.p_SystemSpareEvtBuffer = SystemSpareEvtBuffer;
   tl_mm_config.p_AsynchEvtPool = EvtPool;
@@ -652,6 +659,10 @@ void UTIL_SEQ_EvtIdle( UTIL_SEQ_bm_t task_id_bm, UTIL_SEQ_bm_t evt_waited_bm )
     /* Process notifications and requests from the M0 */
     UTIL_SEQ_Run((1U << CFG_TASK_NOTIFY_FROM_M0_TO_M4) | (1U << CFG_TASK_REQUEST_FROM_M0_TO_M4));
     break;
+  case EVENT_ON_OFF_RSP:
+    /* Run all task except CFG_TASK_BUTTON_SW1 */
+    UTIL_SEQ_Run(~(1U << CFG_TASK_BUTTON_SW1));
+    break;
   default :
     /* default case */
   UTIL_SEQ_Run( UTIL_SEQ_DEFAULT );
@@ -741,5 +752,58 @@ void BSP_PB_Callback(Button_TypeDef Button)
   }
 }
 
+static void RxUART_Init(void)
+{
+  HW_UART_Receive_IT(CFG_DEBUG_TRACE_UART, aRxBuffer, 1U, RxCpltCallback);
+}
+
+static void RxCpltCallback(void)
+{
+  /* Filling buffer and wait for '\r' char */
+  if (indexReceiveChar < C_SIZE_CMD_STRING)
+  {
+    if (aRxBuffer[0] == '\r')
+    {
+      APP_DBG("received %s", CommandString);
+
+      UartCmdExecute();
+
+      /* Clear receive buffer and character counter*/
+      indexReceiveChar = 0;
+      memset(CommandString, 0, C_SIZE_CMD_STRING);
+    }
+    else
+    {
+      CommandString[indexReceiveChar++] = aRxBuffer[0];
+    }
+  }
+
+  /* Once a character has been sent, put back the device in reception mode */
+  HW_UART_Receive_IT(CFG_DEBUG_TRACE_UART, aRxBuffer, 1U, RxCpltCallback);
+}
+
+static void UartCmdExecute(void)
+{
+  /* Parse received CommandString */
+  if(strcmp((char const*)CommandString, "SW1") == 0)
+  {
+    APP_DBG("SW1 OK");
+//    exti_handle.Line = EXTI_LINE_4;
+//    HAL_EXTI_GenerateSWI(&exti_handle);
+    BSP_PB_Callback(BUTTON_USER1);
+  }
+  else if (strcmp((char const*)CommandString, "SW2") == 0)
+  {
+    APP_DBG("SW2 OK");
+//    exti_handle.Line = EXTI_LINE_0;
+//    HAL_EXTI_GenerateSWI(&exti_handle);
+    BSP_PB_Callback(BUTTON_USER2);
+  }
+ 
+  else
+  {
+    APP_DBG("NOT RECOGNIZED COMMAND : %s", CommandString);
+  }
+}
 /* USER CODE END FD_WRAP_FUNCTIONS */
 /*****************************************************************************/

@@ -42,6 +42,8 @@ typedef PACKED_STRUCT {
 } Zigbee_Cmd_Request_t;
 
 /* List of messages between M4 and M0 */
+/* /!\ New enum has to be insert a t the end of the list */
+/* Not in the middle of it in order to insure inter-version compatibility /!\ */
 typedef enum {
     MSG_M4TOM0_UNKNOWN = 0x0000,
     MSG_M0TOM4_UNKNOWN = 0x0001,
@@ -123,7 +125,7 @@ typedef enum {
     MSG_M4TOM0_ZB_HASH_BYTE = 0x003f, /* ZbHashByte */
     MSG_M4TOM0_AES_CCM_TRANSFORM = 0x0040,
     MSG_M4TOM0_AES_CCM_AUTHENTICATE = 0x0041,
-    /* Eliptic Curve (semi-private use) */
+    /* Elliptic Curve (semi-private use) */
     MSG_M4TOM0_EC_MUL_X25519 = 0x0042, /* ec_mul_x25519 */
     MSG_M4TOM0_EC_MUL_P256 = 0x0043, /* ec_mul_p256 */
     /* SHA-256 functions (semi-private use) */
@@ -329,7 +331,25 @@ typedef enum {
 
     /* Raw MCP Messages */
     MSG_M4TOM0_WPAN_MCP_MSG = 0x1100,
-    MSG_M0TOM4_WPAN_MCP_MSG = 0x1101
+    MSG_M0TOM4_WPAN_MCP_MSG = 0x1101,
+
+    /* Misc Debug */
+    MSG_M4TOM0_DEBUG_MEMORY = 0x2000,
+    MSG_M4TOM0_DEBUG_INFO = 0x2001,
+
+    /* MAC */
+    MSG_M4TOM0_MAC_SET_PROP_STRICT_DATA_POLL_REQ = 0x3000, /* MacSetPropStrictDataPollReq / g_MAC_PROP_STRICT_DATA_POLL_REQ_c */
+    
+    /* PHY */
+    MSG_M4TOM0_PHY_TEST_MODE = 0x4000,
+    MSG_M4TOM0_PHY_SET_CHANNEL = 0x4001,
+    MSG_M4TOM0_PHY_CONTINUOUS_WAVE_START = 0x4002,
+    MSG_M4TOM0_PHY_CONTINUOUS_WAVE_STOP = 0x4003,
+    MSG_M4TOM0_PHY_TX_START = 0x4004,
+    MSG_M4TOM0_PHY_RX_START = 0x4005,
+    MSG_M4TOM0_PHY_RX_STOP = 0x4006,
+    MSG_M4TOM0_PHY_CONTINUOUS_TX_START = 0x4007,
+    MSG_M4TOM0_PHY_CONTINUOUS_TX_STOP = 0x4008,
 } MsgId_Zigbee_Enum_t;
 
 /* List of errors returned by the interface  */

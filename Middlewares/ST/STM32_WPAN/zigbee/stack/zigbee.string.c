@@ -2,6 +2,25 @@
 
 #include "zigbee.h"
 
+/*FUNCTION:-------------------------------------------------------------------
+ *  NAME
+ *      char_is_space
+ *  DESCRIPTION
+ *      Checks if character is one of the standard white-space characters:
+ *
+ *      ' '     (0x20)  space (SPC)
+ *      '\t'    (0x09)  horizontal tab (TAB)
+ *      '\n'    (0x0a)  newline (LF)
+ *      '\v'    (0x0b)  vertical tab (VT)
+ *      '\f'    (0x0c)  feed (FF)
+ *      '\r'    (0x0d)  carriage return (CR)
+ *
+ *  PARAMETERS
+ *      none
+ *  RETURNS
+ *      none
+ *----------------------------------------------------------------------------
+ */
 static bool
 char_is_space(uint8_t c)
 {
@@ -24,6 +43,23 @@ char_is_space(uint8_t c)
     return (rc);
 }
 
+/*FUNCTION:------------------------------------------------------
+ *  NAME
+ *      zb_hex_str_to_bin
+ *  DESCRIPTION
+ *      A helper for parsing hex strings to binary blobs.
+ *
+ *      Parses a hexadecimal string into memory. Will skip over
+ *      separator characters. Will stop when maxlen bytes
+ *      have been written, or a NULL character is encountered.
+ *  PARAMETERS
+ *      str             ; Input string.
+ *      out             ; Output pointer.
+ *      maxlen          ; Size of memory that can be written to.
+ *  RETURNS
+ *      int             ; Number of bytes written.
+ *---------------------------------------------------------------
+ */
 int
 zb_hex_str_to_bin(const char *string, void *out, unsigned int maxlen)
 {
@@ -96,6 +132,25 @@ zb_hex_str_to_bin(const char *string, void *out, unsigned int maxlen)
     return (int)i;
 }
 
+/*FUNCTION:------------------------------------------------------
+ *  NAME
+ *      zb_hex_bin_to_str
+ *  DESCRIPTION
+ *      Convert an array of bytes to a null terminated string of
+ *      hex. For an array of length bytes, without delimiters the
+ *      buffer must be at least 2 * length + 1 . With delimiters
+ *      add the number of delimiters.
+ *  PARAMETERS
+ *      output     buffer to store string, WARNING must be at
+ *                 least: 2 * length + 1 + #delimiters in length!
+ *      data       data to convert
+ *      length     number of bytes of data to convert
+ *      delimiter  character to use as a delimiter
+ *      interval   space between delimiters or zero for none
+ *  RETURNS
+ *      output string length
+ *---------------------------------------------------------------
+ */
 unsigned int
 zb_hex_bin_to_str(const uint8_t *in_data, unsigned int in_len, char *out_str, unsigned int max_len,
     const char delimiter, unsigned int interval)

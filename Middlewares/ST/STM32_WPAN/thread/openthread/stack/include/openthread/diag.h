@@ -52,7 +52,7 @@ extern "C" {
  */
 
 /**
- * This function processes a factory diagnostics command line.
+ * Processes a factory diagnostics command line.
  *
  * The output of this function (the content written to @p aOutput) MUST terminate with `\0` and the `\0` is within the
  * output buffer.
@@ -70,12 +70,12 @@ extern "C" {
  */
 otError otDiagProcessCmd(otInstance *aInstance,
                          uint8_t     aArgsLength,
-                         char *      aArgs[],
-                         char *      aOutput,
+                         char       *aArgs[],
+                         char       *aOutput,
                          size_t      aOutputMaxLen);
 
 /**
- * This function processes a factory diagnostics command line.
+ * Processes a factory diagnostics command line.
  *
  * The output of this function (the content written to @p aOutput) MUST terminate with `\0` and the `\0` is within the
  * output buffer.
@@ -85,11 +85,16 @@ otError otDiagProcessCmd(otInstance *aInstance,
  * @param[out]  aOutput         The diagnostics execution result.
  * @param[in]   aOutputMaxLen   The output buffer size.
  *
+ * @retval  OT_ERROR_NONE               The command is successfully process.
+ * @retval  OT_ERROR_INVALID_ARGS       The command is supported but invalid arguments provided.
+ * @retval  OT_ERROR_NOT_IMPLEMENTED    The command is not supported.
+ * @retval  OT_ERROR_NO_BUFS            The command string is too long.
+ *
  */
-void otDiagProcessCmdLine(otInstance *aInstance, const char *aString, char *aOutput, size_t aOutputMaxLen);
+otError otDiagProcessCmdLine(otInstance *aInstance, const char *aString, char *aOutput, size_t aOutputMaxLen);
 
 /**
- * This function indicates whether or not the factory diagnostics mode is enabled.
+ * Indicates whether or not the factory diagnostics mode is enabled.
  *
  * @param[in]  aInstance  A pointer to an OpenThread instance.
  *

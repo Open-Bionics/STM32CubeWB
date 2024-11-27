@@ -234,6 +234,7 @@ static void appe_Tl_Init( void )
   shci_init(APPE_SysUserEvtRx, (void*) &SHci_Tl_Init_Conf);
 
   /**< Memory Manager channel initialization */
+  memset(&tl_mm_config, 0, sizeof(TL_MM_Config_t));
   tl_mm_config.p_BleSpareEvtBuffer = 0;
   tl_mm_config.p_SystemSpareEvtBuffer = SystemSpareEvtBuffer;
   tl_mm_config.p_AsynchEvtPool = EvtPool;
@@ -402,6 +403,7 @@ void TL_TRACES_EvtReceived( TL_EvtPacket_t * hcievt )
   /* Release buffer */
   TL_MM_EvtDone( hcievt );
 }
+
 /**
   * @brief  Initialisation of the trace mechanism
   * @param  None
@@ -488,16 +490,17 @@ static void UartCmdExecute(void)
   if(strcmp((char const*)CommandString, "SW1") == 0)
   {
     APP_DBG("SW1 OK");
-    exti_handle.Line = EXTI_LINE_4;
-    HAL_EXTI_GenerateSWI(&exti_handle);
+//    exti_handle.Line = EXTI_LINE_4;
+//    HAL_EXTI_GenerateSWI(&exti_handle);
+    HAL_GPIO_EXTI_Callback(BUTTON_USER1_PIN);
   }
   else if (strcmp((char const*)CommandString, "SW2") == 0)
   {
     APP_DBG("SW2 OK");
-    exti_handle.Line = EXTI_LINE_0;
-    HAL_EXTI_GenerateSWI(&exti_handle);
+//    exti_handle.Line = EXTI_LINE_0;
+//    HAL_EXTI_GenerateSWI(&exti_handle);
+    HAL_GPIO_EXTI_Callback(BUTTON_USER2_PIN);
   }
- 
   else
   {
     APP_DBG("NOT RECOGNIZED COMMAND : %s", CommandString);

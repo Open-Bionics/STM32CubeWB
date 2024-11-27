@@ -68,7 +68,6 @@ typedef enum
 
 /* Exported functions ---------------------------------------------*/
 void APP_BLE_Init(void);
-
 APP_BLE_ConnStatus_t APP_BLE_Get_Server_Connection_Status(void);
 
 /* USER CODE BEGIN EF */
@@ -76,7 +75,7 @@ void APP_BLE_Key_Button1_Action(void);
 void APP_BLE_Key_Button2_Action(void);
 void APP_BLE_Key_Button3_Action(void);
 
-void APP_BLE_Slave_Security_Request(void);
+void APP_BLE_Peripheral_Security_Request(void);
 void APP_BLE_Peer_Bonded_Check(void);
 void APP_BLE_Remove_Bonding_Info(void);
 
@@ -86,4 +85,4 @@ void APP_BLE_Remove_Bonding_Info(void);
 }
 #endif
 
-#endif /* APP_BLE_H */
+#endif /*APP_BLE_H */

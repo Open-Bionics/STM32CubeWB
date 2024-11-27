@@ -127,6 +127,15 @@ static uint8_t ad_manufacturer_specific_data[14] = { /* Manufacturer specific da
     0x00, /* BlueST Device MAC byte 1 */
     0x00  /* BlueST Device MAC byte 0 */
 };
+static const uint8_t a_MBdAddr[BD_ADDR_SIZE_LOCAL] =
+{
+  (uint8_t)((CFG_ADV_BD_ADDRESS & 0x0000000000FF)),
+  (uint8_t)((CFG_ADV_BD_ADDRESS & 0x00000000FF00) >> 8),
+  (uint8_t)((CFG_ADV_BD_ADDRESS & 0x000000FF0000) >> 16),
+  (uint8_t)((CFG_ADV_BD_ADDRESS & 0x0000FF000000) >> 24),
+  (uint8_t)((CFG_ADV_BD_ADDRESS & 0x00FF00000000) >> 32),
+  (uint8_t)((CFG_ADV_BD_ADDRESS & 0xFF0000000000) >> 40)
+};
 
 extern MyVeryOwnServiceContext_t myVeryOwnServiceContext;
 
@@ -438,8 +447,8 @@ static void BLE_Init( void )
     CFG_BLE_PREPARE_WRITE_LIST_SIZE,
     CFG_BLE_MBLOCK_COUNT,
     CFG_BLE_MAX_ATT_MTU,
-    CFG_BLE_SLAVE_SCA,
-    CFG_BLE_MASTER_SCA,
+    CFG_BLE_PERIPHERAL_SCA,
+    CFG_BLE_CENTRAL_SCA,
     CFG_BLE_LS_SOURCE,
     CFG_BLE_MAX_CONN_EVENT_LENGTH,
     CFG_BLE_HSE_STARTUP_TIME,
@@ -454,7 +463,8 @@ static void BLE_Init( void )
      CFG_BLE_MAX_ADV_DATA_LEN,
      CFG_BLE_TX_PATH_COMPENS,
      CFG_BLE_RX_PATH_COMPENS,
-     CFG_BLE_CORE_VERSION
+     CFG_BLE_CORE_VERSION,
+     CFG_BLE_OPTIONS_EXT
     }
   };
   
@@ -535,7 +545,7 @@ static void BLE_Advertising(FlagStatus newState)
       ret = aci_gap_set_discoverable(ADV_IND,                                       /*< Advertise as connectable, undirected. */
                                      CFG_FAST_CONN_ADV_INTERVAL_MIN,                /*< Set the advertising interval min value. */
                                      CFG_FAST_CONN_ADV_INTERVAL_MAX,                /*< Set the advertising interval max value. */
-                                     PUBLIC_ADDR,                                   /*< Use the public address. */
+                                     GAP_PUBLIC_ADDR,                                   /*< Use the public address. */
                                      NO_WHITE_LIST_USE,                             /*< No white list. */
                                      sizeof(ad_local_name), (uint8_t*)ad_local_name,/*< Use a local name. */
                                      0, NULL,                                       /*< Do not include the service UUID list. (no adopted services) */
@@ -649,7 +659,7 @@ static void Ble_Hci_Gap_Gatt_Init(void)
   * Initialize GAP
   */
   ret = aci_gap_init(GAP_PERIPHERAL_ROLE,
-                     0,
+                     PRIVACY_DISABLED,
                      APP_BLE_GAP_DEVICE_NAME_LENGTH,
                      &gap_service_handle,
                      &gap_dev_name_char_handle,
@@ -695,33 +705,52 @@ static void Ble_Hci_Gap_Gatt_Init(void)
 */
 const uint8_t* Ble_GetBdAddress(void)
 {
-  const uint8_t *bd_address;
+  uint8_t *p_otp_addr;
+  const uint8_t *p_bd_addr;
   uint32_t udn;
   uint32_t company_id;
   uint32_t device_id;
-  
+
   udn = LL_FLASH_GetUDN();
-  
-  if(udn != 0xFFFFFFFF)
+
+  if (udn != 0xFFFFFFFF)
   {
     company_id = LL_FLASH_GetSTCompanyID();
     device_id = LL_FLASH_GetDeviceID();
-    
+
+    /**
+     * Public Address with the ST company ID
+     * bit[47:24] : 24bits (OUI) equal to the company ID
+     * bit[23:16] : Device ID.
+     * bit[15:0] : The last 16bits from the UDN
+     * Note: In order to use the Public Address in a final product, a dedicated
+     * 24bits company ID (OUI) shall be bought.
+     */
     bd_address_udn[0] = (uint8_t)(udn & 0x000000FF);
-    bd_address_udn[1] = (uint8_t)( (udn & 0x0000FF00) >> 8 );
-    bd_address_udn[2] = (uint8_t)( (udn & 0x00FF0000) >> 16 );
-    bd_address_udn[3] = (uint8_t)device_id;
-    bd_address_udn[4] = (uint8_t)(company_id & 0x000000FF);
-    bd_address_udn[5] = (uint8_t)( (company_id & 0x0000FF00) >> 8 );
-    
-    bd_address = (const uint8_t *)bd_address_udn;
+    bd_address_udn[1] = (uint8_t)((udn & 0x0000FF00) >> 8);
+    bd_address_udn[2] = (uint8_t)device_id;
+    bd_address_udn[3] = (uint8_t)(company_id & 0x000000FF);
+    bd_address_udn[4] = (uint8_t)((company_id & 0x0000FF00) >> 8);
+    bd_address_udn[5] = (uint8_t)((company_id & 0x00FF0000) >> 16);
+
+    p_bd_addr = (const uint8_t *)bd_address_udn;
   }
-  else {
-    Error_Handler(); /* UNEXPECTED */
+  else
+  {
+    p_otp_addr = OTP_Read(0);
+    if (p_otp_addr)
+    {
+      p_bd_addr = ((OTP_ID0_t*)p_otp_addr)->bd_address;
+    }
+    else
+    {
+      p_bd_addr = a_MBdAddr;
+    }
   }
-  
-  return bd_address;
+
+  return p_bd_addr;
 }
+
 
 /**
 * @brief  Interrupt service routine that must be called when the system channel
@@ -982,7 +1011,7 @@ static void BLE_UserEventReceivedCallback( void * pData )
                                                 connection_complete_event->Conn_Interval,
                                                 connection_complete_event->Conn_Latency,
                                                 connection_complete_event->Supervision_Timeout,
-                                                connection_complete_event->Master_Clock_Accuracy );
+                                                connection_complete_event->Central_Clock_Accuracy );
             }
             break; /* HCI_HCI_LE_CONNECTION_COMPLETE_SUBEVT_CODE */
 
@@ -1148,7 +1177,7 @@ void hci_disconnection_complete_event( uint8_t Status,
  * This event indicates to the Host which issued a LE_Create_Connection command
  * and received a Command Status event if the connection establishment failed
  * or was successful.
- * The Master_Clock_Accuracy parameter is only valid for a slave. On a master,
+ * The Central_Clock_Accuracy parameter is only valid for a slave. On a master,
  * this parameter shall be set to 0x00. See Bluetooth spec 5.0 vol 2 [part E]
  * 7.7.65.1
  * 
@@ -1158,8 +1187,8 @@ void hci_disconnection_complete_event( uint8_t Status,
  *        - 0x0000 ... 0x0EFF
  * @param Role Role of the local device in the connection.
  *        Values:
- *        - 0x00: Master
- *        - 0x01: Slave
+ *        - 0x00: Central
+ *        - 0x01: Peripheral
  * @param Peer_Address_Type The address type of the peer device.
  *        Values:
  *        - 0x00: Public Device Address
@@ -1170,17 +1199,17 @@ void hci_disconnection_complete_event( uint8_t Status,
  *        Time = N * 1.25 msec
  *        Values:
  *        - 0x0006 (7.50 ms)  ... 0x0C80 (4000.00 ms)
- * @param Conn_Latency Slave latency for the connection in number of connection
+ * @param Conn_Latency Peripheral latency for the connection in number of connection
  *        events.
  *        Values:
  *        - 0x0000 ... 0x01F3
  * @param Supervision_Timeout Supervision timeout for the LE Link.
  *        It shall be a multiple of 10 ms and larger than (1 +
- *        connSlaveLatency) * connInterval * 2.
+ *        connPeripheralLatency) * connInterval * 2.
  *        Time = N * 10 msec.
  *        Values:
  *        - 0x000A (100 ms)  ... 0x0C80 (32000 ms)
- * @param Master_Clock_Accuracy Master clock accuracy. Only valid for a slave.
+ * @param Central_Clock_Accuracy Central clock accuracy. Only valid for a slave.
  *        Values:
  *        - 0x00: 500 ppm
  *        - 0x01: 250 ppm
@@ -1200,7 +1229,7 @@ void hci_le_connection_complete_event( uint8_t Status,
                                        uint16_t Conn_Interval,
                                        uint16_t Conn_Latency,
                                        uint16_t Supervision_Timeout,
-                                       uint8_t Master_Clock_Accuracy )
+                                       uint8_t Central_Clock_Accuracy )
 {
   APP_FLAG_RESET(APP_FLAG_BLE_ADVERTISING);
   APP_FLAG_SET(APP_FLAG_BLE_CONNECTED);

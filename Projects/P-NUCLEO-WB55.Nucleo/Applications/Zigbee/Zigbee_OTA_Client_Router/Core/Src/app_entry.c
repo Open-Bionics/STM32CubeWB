@@ -207,6 +207,7 @@ static void APPE_Tl_Init( void )
   shci_init(APPE_SysUserEvtRx, (void*) &SHci_Tl_Init_Conf);
 
   /**< Memory Manager channel initialization */
+  memset(&tl_mm_config, 0, sizeof(TL_MM_Config_t));
   tl_mm_config.p_BleSpareEvtBuffer = 0;
   tl_mm_config.p_SystemSpareEvtBuffer = SystemSpareEvtBuffer;
   tl_mm_config.p_AsynchEvtPool = EvtPool;
@@ -643,6 +644,11 @@ static void UartCmdExecute(void)
     exti_handle.Line = EXTI_LINE_1;
     HAL_EXTI_GenerateSWI(&exti_handle);
   }
+  else if (strcmp((char const*)CommandString, "RST") == 0)
+  {
+    APP_DBG("RESET CMD RECEIVED");
+    HAL_NVIC_SystemReset();
+  }  
   else
   {
     APP_DBG("NOT RECOGNIZED COMMAND : %s", CommandString);

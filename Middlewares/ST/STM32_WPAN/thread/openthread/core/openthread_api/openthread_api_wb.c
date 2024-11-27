@@ -34,6 +34,11 @@
 /* INSTANCE */
 otStateChangedCallback otStateChangedCb = NULL;
 
+/* NAT64 */
+#if OPENTHREAD_CONFIG_NAT64_TRANSLATOR_ENABLE 
+otNat64ReceiveIp4Callback otNat64ReceiveIp4Cb = NULL;
+#endif
+
 /* IP6 */
 #if OPENTHREAD_CONFIG_IP6_SLAAC_ENABLE
 otIp6SlaacPrefixFilter otIp6SlaacPrefixFilterCb = NULL;
@@ -133,6 +138,11 @@ otDnsAddressCallback otDnsAddressCb = NULL;
 otDnsBrowseCallback otDnsBrowseCb = NULL;
 otDnsServiceCallback otDnsServiceCb = NULL;
 
+#if OPENTHREAD_CONFIG_MESH_DIAG_ENABLE && OPENTHREAD_FTD
+/* MESH DIAG */
+otMeshDiagDiscoverCallback otMeshDiagDiscoverCb = NULL;
+#endif /* OPENTHREAD_CONFIG_MESH_DIAG_ENABLE && OPENTHREAD_FTD */
+
 #if OPENTHREAD_CONFIG_DNSSD_SERVER_ENABLE
 otDnssdQuerySubscribeCallback otDnssdQuerySubscribeCb = NULL;
 otDnssdQueryUnsubscribeCallback otDnssdQueryUnsubscribeCb = NULL;
@@ -152,7 +162,7 @@ otNetDataDnsSrpServicePublisherCallback otNetDataDnsSrpServicePublisherCb = NULL
 otNetDataPrefixPublisherCallback otNetDataPrefixPublisherCb = NULL;
 #endif
 
-#if OPENTHREAD_FTD || OPENTHREAD_CONFIG_TMF_NETWORK_DIAG_MTD_ENABLE
+#if OPENTHREAD_CONFIG_TMF_NETDIAG_CLIENT_ENABLE
 otReceiveDiagnosticGetCallback otReceiveDiagnosticGetCb = NULL;
 #endif
 
@@ -310,7 +320,7 @@ HAL_StatusTypeDef OpenThread_CallBack_Processing(void)
     }
     break;
   case MSG_M0TOM4_DNS_SERVICE_CB:
-    if (otDnsAddressCb != NULL)
+    if (otDnsServiceCb != NULL)
     {
       otDnsServiceCb((otError) p_notification->Data[0],
           (const otDnsServiceResponse *) p_notification->Data[1],
@@ -395,7 +405,7 @@ HAL_StatusTypeDef OpenThread_CallBack_Processing(void)
     }
     break;
 #endif // OPENTHREAD_CONFIG_SRP_SERVER_ENABLE
-#if OPENTHREAD_FTD || OPENTHREAD_CONFIG_TMF_NETWORK_DIAG_MTD_ENABLE
+#if OPENTHREAD_CONFIG_TMF_NETDIAG_CLIENT_ENABLE
   case MSG_M0TOM4_RECEIVE_DIAGNOSTIC_GET_CB:
     if (otReceiveDiagnosticGetCb != NULL)
     {
@@ -405,7 +415,7 @@ HAL_StatusTypeDef OpenThread_CallBack_Processing(void)
           (void *) p_notification->Data[3]);
     }
     break;
-#endif // OPENTHREAD_FTD || OPENTHREAD_CONFIG_TMF_NETWORK_DIAG_MTD_ENABLE
+#endif // OPENTHREAD_CONFIG_TMF_NETDIAG_CLIENT_ENABLE
   case MSG_M0TOM4_NOTIFY_STATE_CHANGE:
     if (otStateChangedCb != NULL)
     {
@@ -413,6 +423,7 @@ HAL_StatusTypeDef OpenThread_CallBack_Processing(void)
           (void*) p_notification->Data[1]);
     }
     break;
+#if OPENTHREAD_CONFIG_MLE_PARENT_RESPONSE_CALLBACK_API_ENABLE
   case MSG_M0TOM4_THREAD_PARENT_RESPONSE_HANDLER:
     if (otThreadParentResponseCb != NULL)
     {
@@ -420,7 +431,8 @@ HAL_StatusTypeDef OpenThread_CallBack_Processing(void)
           (void *) p_notification->Data[1]);
     }
     break;
-  case MSG_M0TOM4_THREAD_DETACH_GRACEFULLY_CB:
+#endif /* OPENTHREAD_CONFIG_MLE_PARENT_RESPONSE_CALLBACK_API_ENABLE */
+  case MSG_M0TOM4_DETACH_GRACEFULLY_CALLBACK:
     if (otDetachGracefullyCb != NULL)
     {
       otDetachGracefullyCb((void *) p_notification->Data[0]);
@@ -502,7 +514,7 @@ HAL_StatusTypeDef OpenThread_CallBack_Processing(void)
   case MSG_M0TOM4_NOTIFY_STACK_RESET:
     /* Store Thread NVM data in Flash*/
     SHCI_C2_FLASH_StoreData(THREAD_IP);
-    /* Perform an NVIC Reset in order to reinitalize the device */
+    /* Perform an NVIC Reset in order to reinitialize the device */
     HAL_NVIC_SystemReset();
     break;
   case MSG_M0TOM4_IP6_RECEIVE:
@@ -819,6 +831,16 @@ HAL_StatusTypeDef OpenThread_CallBack_Processing(void)
     }
     break;
 #endif /* OPENTHREAD_CONFIG_TCP_ENABLE */
+#if OPENTHREAD_CONFIG_MESH_DIAG_ENABLE && OPENTHREAD_FTD
+  case MSG_M0TOM4_MESH_DIAG_DISCOVER_CALLBACK:
+    if (otMeshDiagDiscoverCb != NULL)
+    {
+      otMeshDiagDiscoverCb((otError) p_notification->Data[0],
+          (otMeshDiagRouterInfo *) p_notification->Data[1],
+          (void *) p_notification->Data[2]);
+    }
+    break;
+#endif /* OPENTHREAD_CONFIG_MESH_DIAG_ENABLE && OPENTHREAD_FTD */
   default:
     status = HAL_ERROR;
     break;

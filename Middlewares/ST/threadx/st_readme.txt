@@ -7,7 +7,22 @@
   ******************************************************************************
   */
 
-### V6.1.12 (19-08-2022) ###
+### V6.2.1 (15-12-2023) ###
+============================
+- Add STM32U0 series to Azure RTOS licensed hardware list
+
+### V6.2.1 (14-07-2023) ###
+============================
+- Upgrade to Azure RTOS ThreadX 6.2.1 with additional following patch
+   + Fix tx_user.h inclusion in ports files
+
+### V6.2.0 (23-12-2022) ###
+============================
+- Upgrade to Azure RTOS ThreadX 6.2.0 with additional following patch
+   + Add GNU and IAR ports_module files for Cortex A7
+- Add STM32H5/STM32WBA series to Azure RTOS licensed hardware list
+
+### V6.1.12 (30-09-2022) ###
 ============================
 - Upgrade to Azure RTOS ThreadX 6.1.12
 

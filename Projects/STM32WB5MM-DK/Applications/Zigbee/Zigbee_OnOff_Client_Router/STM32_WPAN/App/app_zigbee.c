@@ -45,7 +45,7 @@
 
 /* Private defines -----------------------------------------------------------*/
 #define APP_ZIGBEE_STARTUP_FAIL_DELAY               500U
-#define CHANNEL                                     13
+#define CHANNEL                                     15
 
 #define SW1_ENDPOINT            17
 
@@ -80,6 +80,8 @@ static void APP_ZIGBEE_CheckWirelessFirmwareInfo(void);
 static void Wait_Getting_Ack_From_M0(void);
 static void Receive_Ack_From_M0(void);
 static void Receive_Notification_From_M0(void);
+static void APP_ZIGBEE_ProcessNotifyM0ToM4(void);
+static void APP_ZIGBEE_ProcessRequestM0ToM4(void);
 
 /* Information functions */
 static uint8_t get_channel_from_mask(uint32_t mask, uint16_t *first_channel);
@@ -342,8 +344,9 @@ enum ZbStatusCodeT ZbStartupWait(struct ZigBeeT *zb, struct ZbStartupT *config)
 
   info->active = true;
   status = ZbStartup(zb, config, ZbStartupWaitCb, info);
-  if (status != ZB_STATUS_SUCCESS) {
-    info->active = false;
+  if (status != ZB_STATUS_SUCCESS)
+  {
+    free(info);
     return status;
   }
   UTIL_SEQ_WaitEvt(EVENT_ZIGBEE_STARTUP_ENDED);
@@ -612,19 +615,14 @@ void APP_ZIGBEE_TL_INIT(void)
  * @param  None
  * @retval None
  */
-void APP_ZIGBEE_ProcessNotifyM0ToM4(void)
+static void APP_ZIGBEE_ProcessNotifyM0ToM4(void)
 {
-    if (CptReceiveNotifyFromM0 != 0) {
-        /* If CptReceiveNotifyFromM0 is > 1. it means that we did not serve all the events from the radio */
-        if (CptReceiveNotifyFromM0 > 1U) {
-            APP_ZIGBEE_Error(ERR_REC_MULTI_MSG_FROM_M0, 0);
-        }
-        else {
-            Zigbee_CallBackProcessing();
-        }
-        /* Reset counter */
-        CptReceiveNotifyFromM0 = 0;
-    }
+  if (CptReceiveNotifyFromM0 != 0)
+  {
+    /* Reset counter */
+    CptReceiveNotifyFromM0 = 0;
+    Zigbee_CallBackProcessing();
+  }
 }
 
 /**
@@ -632,11 +630,11 @@ void APP_ZIGBEE_ProcessNotifyM0ToM4(void)
  * @param  None
  * @return None
  */
-void APP_ZIGBEE_ProcessRequestM0ToM4(void)
+static void APP_ZIGBEE_ProcessRequestM0ToM4(void)
 {
     if (CptReceiveRequestFromM0 != 0) {
-        Zigbee_M0RequestProcessing();
         CptReceiveRequestFromM0 = 0;
+        Zigbee_M0RequestProcessing();
     }
 }
 
@@ -683,20 +681,20 @@ static void APP_ZIGBEE_SW1_Process(void)
   }
 
   memset(&dst, 0, sizeof(dst));
-  dst.mode = ZB_APSDE_ADDRMODE_GROUP;
+  dst.mode = ZB_APSDE_ADDRMODE_SHORT;
   dst.endpoint = SW1_ENDPOINT;
-  dst.nwkAddr = SW1_GROUP_ADDR;
+  dst.nwkAddr = 0x0;
 
   /* Check value to send the correct command and not only Toggle */
   if (OnOffCtrl_On)
   {
     cmd_status = ZbZclOnOffClientOffReq(zigbee_app_info.onOff_client_1, &dst, APP_ZIGBEE_off_cb, NULL);
-    APP_DBG("SW1 PUSHED (SENDING LED OFF TO GROUP 0x0001)");
+    APP_DBG("SW1 PUSHED - SENDING LED OFF To Nwk 0x0000");
   }
   else
   {
     cmd_status = ZbZclOnOffClientOnReq(zigbee_app_info.onOff_client_1, &dst, APP_ZIGBEE_on_cb, NULL);
-    APP_DBG("SW1 PUSHED (SENDING LED ON TO GROUP 0x0001)");
+    APP_DBG("SW1 PUSHED - SENDING LED ON To Nwk 0x0000");
   }
   UTIL_SEQ_WaitEvt(EVENT_ON_OFF_RSP);
 
@@ -713,12 +711,6 @@ static void APP_ZIGBEE_SW1_Process(void)
   {
     OnOffCtrl_On = 1U;
   }
-
-  // APP_DBG("SW1 PUSHED (SENDING TOGGLE TO GROUP 0x0001)");
-  // if (ZbZclOnOffClientToggleReq(zigbee_app_info.onOff_client_1, &dst, APP_ZIGBEE_toggle_cb, NULL) != ZCL_STATUS_SUCCESS) {
-  //   APP_DBG("Error, ZbZclOnOffClientToggleReq failed (SW1_ENDPOINT)");
-  // }
-  // UTIL_SEQ_WaitEvt(EVENT_ON_OFF_RSP);
 } /* APP_ZIGBEE_SW1_Process */
 
 
@@ -730,6 +722,7 @@ static void APP_ZIGBEE_SW1_Process(void)
  */
 static void APP_ZIGBEE_on_cb(struct ZbZclCommandRspT *rsp, void *arg)
 {
+  // Available only in UNICAST
   if (rsp->status != ZCL_STATUS_SUCCESS)
   {
     APP_DBG("ON RSP FAIL status %d",rsp->status);
@@ -749,6 +742,7 @@ static void APP_ZIGBEE_on_cb(struct ZbZclCommandRspT *rsp, void *arg)
  */
 static void APP_ZIGBEE_off_cb(struct ZbZclCommandRspT *rsp, void *arg)
 {
+  // Available only in UNICAST
   if (rsp->status != ZCL_STATUS_SUCCESS)
   {
     APP_DBG("OFF RSP FAIL status %d",rsp->status);
@@ -837,4 +831,3 @@ static uint8_t get_channel_from_mask(uint32_t mask, uint16_t *first_channel)
 }
 
 /* USER CODE END FD_LOCAL_FUNCTIONS */
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

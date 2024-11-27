@@ -33,8 +33,8 @@
 
 /**
  * Define Tx Power
- */   
-#define CFG_TX_POWER                      (0x18) /**< 0dbm */
+ */
+#define CFG_TX_POWER                      (0x18) /* -0.15dBm */
 
 /**
  * Radio activity event
@@ -44,6 +44,8 @@
 /**
  * Define Advertising parameters
  */
+#define CFG_ADV_BD_ADDRESS                (0x7257acd87a6c)
+
 #define CFG_FAST_CONN_ADV_INTERVAL_MIN    (0x00C8)  /**< 250ms */
 #define CFG_FAST_CONN_ADV_INTERVAL_MAX    (0x00C8)  /**< 250ms */
 #define CFG_LP_CONN_ADV_INTERVAL_MIN      (0x0640)  /**< 1s */
@@ -109,12 +111,12 @@
 #define CFG_BLE_DATA_LENGTH_EXTENSION   1
 
 /**
- * Sleep clock accuracy in Slave mode (ppm value)
+ * Sleep clock accuracy in Peripheral mode (ppm value)
  */
-#define CFG_BLE_SLAVE_SCA   500
+#define CFG_BLE_PERIPHERAL_SCA   500
 
 /**
- * Sleep clock accuracy in Master mode
+ * Sleep clock accuracy in Central mode
  * 0 : 251 ppm to 500 ppm
  * 1 : 151 ppm to 250 ppm
  * 2 : 101 ppm to 150 ppm
@@ -124,7 +126,7 @@
  * 6 : 21 ppm to 30 ppm
  * 7 : 0 ppm to 20 ppm
  */
-#define CFG_BLE_MASTER_SCA   0
+#define CFG_BLE_CENTRAL_SCA   0
 
 /**
  * LsSource
@@ -145,7 +147,7 @@
 #define CFG_BLE_HSE_STARTUP_TIME  0x148
 
 /**
- * Maximum duration of the connection event when the device is in Slave mode in units of 625/256 us (~2.44 us)
+ * Maximum duration of the connection event when the device is in Peripheral mode in units of 625/256 us (~2.44 us)
  */
 #define CFG_BLE_MAX_CONN_EVENT_LENGTH  ( 0xFFFFFFFF )
 
@@ -174,10 +176,6 @@
  * - SHCI_C2_BLE_INIT_OPTIONS_GATT_CACHING_NOTUSED
  * - SHCI_C2_BLE_INIT_OPTIONS_POWER_CLASS_1
  * - SHCI_C2_BLE_INIT_OPTIONS_POWER_CLASS_2_3
- * - SHCI_C2_BLE_INIT_OPTIONS_APPEARANCE_WRITABLE
- * - SHCI_C2_BLE_INIT_OPTIONS_APPEARANCE_READONLY
- * - SHCI_C2_BLE_INIT_OPTIONS_ENHANCED_ATT_SUPPORTED
- * - SHCI_C2_BLE_INIT_OPTIONS_ENHANCED_ATT_NOTSUPPORTED
  * which are used to set following configuration bits:
  * (bit 0): 1: LL only
  *          0: LL + host
@@ -195,14 +193,25 @@
  *          0: GATT caching is not used
  * (bit 7): 1: LE Power Class 1
  *          0: LE Power Class 2-3
- * (bit 8): 1: appearance Writable
- *          0: appearance Read-Only
- * (bit 9): 1: Enhanced ATT supported
- *          0: Enhanced ATT not supported 
- * other bits: reserved (shall be set to 0)
+ * other bits: complete with Options_extension flag
  */
 #define CFG_BLE_OPTIONS  ( SHCI_C2_BLE_INIT_OPTIONS_LL_HOST | SHCI_C2_BLE_INIT_OPTIONS_WITH_SVC_CHANGE_DESC | SHCI_C2_BLE_INIT_OPTIONS_DEVICE_NAME_RW | SHCI_C2_BLE_INIT_OPTIONS_NO_EXT_ADV | SHCI_C2_BLE_INIT_OPTIONS_NO_CS_ALGO2 |\
-                           SHCI_C2_BLE_INIT_OPTIONS_FULL_GATTDB_NVM | SHCI_C2_BLE_INIT_OPTIONS_GATT_CACHING_NOTUSED | SHCI_C2_BLE_INIT_OPTIONS_POWER_CLASS_2_3 | SHCI_C2_BLE_INIT_OPTIONS_APPEARANCE_READONLY | SHCI_C2_BLE_INIT_OPTIONS_ENHANCED_ATT_NOTSUPPORTED )
+                           SHCI_C2_BLE_INIT_OPTIONS_FULL_GATTDB_NVM | SHCI_C2_BLE_INIT_OPTIONS_GATT_CACHING_NOTUSED | SHCI_C2_BLE_INIT_OPTIONS_POWER_CLASS_2_3 )
+
+/**
+ * BLE stack Options_extension flags to be configured with:
+ * - SHCI_C2_BLE_INIT_OPTIONS_APPEARANCE_WRITABLE
+ * - SHCI_C2_BLE_INIT_OPTIONS_APPEARANCE_READONLY
+ * - SHCI_C2_BLE_INIT_OPTIONS_ENHANCED_ATT_SUPPORTED
+ * - SHCI_C2_BLE_INIT_OPTIONS_ENHANCED_ATT_NOTSUPPORTED
+ * which are used to set following configuration bits:
+ * (bit 0): 1: appearance Writable
+ *          0: appearance Read-Only
+ * (bit 1): 1: Enhanced ATT supported
+ *          0: Enhanced ATT not supported
+ * other bits: reserved (shall be set to 0)
+ */
+#define CFG_BLE_OPTIONS_EXT  (SHCI_C2_BLE_INIT_OPTIONS_APPEARANCE_READONLY | SHCI_C2_BLE_INIT_OPTIONS_ENHANCED_ATT_NOTSUPPORTED)
 
 #define CFG_BLE_MAX_COC_INITIATOR_NBR   (32)
 
@@ -253,13 +262,14 @@
 
 #define CFG_BLE_RX_PATH_COMPENS    (0)
 
-  /* BLE core version (16-bit signed integer). 
+  /* BLE core version (16-bit signed integer).
    * - SHCI_C2_BLE_INIT_BLE_CORE_5_2
    * - SHCI_C2_BLE_INIT_BLE_CORE_5_3
-   * which are used to set: 11(5.2), 12(5.3).
+   * - SHCI_C2_BLE_INIT_BLE_CORE_5_4
+   * which are used to set: 11(5.2), 12(5.3), 13(5.4).
    */
    
-#define CFG_BLE_CORE_VERSION   (SHCI_C2_BLE_INIT_BLE_CORE_5_3)
+#define CFG_BLE_CORE_VERSION   (SHCI_C2_BLE_INIT_BLE_CORE_5_4)
  
   
 
@@ -298,8 +308,8 @@
  * Debug
  ******************************************************************************/
 /**
- * When set, this resets some hw resources to set the device in the same state than the power up
- * The FW resets only register that may prevent the FW to run properly
+ * When set, this resets some hw resources to put the device in the same state as at power up.
+ * It resets only register that may prevent the FW to run properly.
  *
  * This shall be set to 0 in a final product
  *

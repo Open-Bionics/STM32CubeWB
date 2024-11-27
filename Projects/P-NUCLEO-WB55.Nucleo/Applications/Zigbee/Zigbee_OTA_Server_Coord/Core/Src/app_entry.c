@@ -203,6 +203,7 @@ static void appe_Tl_Init( void )
   shci_init(APPE_SysUserEvtRx, (void*) &SHci_Tl_Init_Conf);
 
   /**< Memory Manager channel initialization */
+  memset(&tl_mm_config, 0, sizeof(TL_MM_Config_t));
   tl_mm_config.p_BleSpareEvtBuffer = 0;
   tl_mm_config.p_SystemSpareEvtBuffer = SystemSpareEvtBuffer;
   tl_mm_config.p_AsynchEvtPool = EvtPool;
@@ -440,6 +441,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     break;
 
   case BUTTON_SW3_PIN:
+    UTIL_SEQ_SetTask(1U << CFG_TASK_BUTTON_SW3,CFG_SCH_PRIO_1);
     break;
 
   default:
@@ -498,6 +500,11 @@ static void UartCmdExecute(void)
     exti_handle.Line = EXTI_LINE_1;
     HAL_EXTI_GenerateSWI(&exti_handle);
   }
+  else if (strcmp((char const*)CommandString, "RST") == 0)
+  {
+    APP_DBG("RESET CMD RECEIVED");
+    HAL_NVIC_SystemReset();
+  }  
   else
   {
     APP_DBG("NOT RECOGNIZED COMMAND : %s", CommandString);

@@ -75,6 +75,22 @@ Connectivity, BLE, IPCC, HSEM, RTC, UART, PWR, BLE protocol, BLE pairing, BLE pr
     - P-NUCLEO-WB55 (MB1355C) Set-up    
        - Connect the Nucleo Board to your PC with a USB cable type A to mini-B to ST-LINK connector (USB_STLINK).
        - Please ensure that the ST-LINK connectors and jumpers are fitted.
+    
+    - Low power is used in the context of ThreadX OS, so be sure to use:
+      CFG_LPM_SUPPORTED = 0 with TX_LOW_POWER = 0 to disable low power
+      or
+      CFG_LPM_SUPPORTED = 1 with TX_LOW_POWER = 1 to enable low power
+      TX_LOW_POWER flag is managed at IDE project level (both compiler and assembler)
+
+    - If TX_ENABLE_EVENT_TRACE is defined TraceX traces are enabled.
+      These traces can be extracted using the debugger an launching the specific
+      macro $PROJ_DIR$\save_tracex.mac (only available for IAR). This macro is responsible to
+      copy the content of "TraceXBuf" array (used to store the traces) into an external file
+      placed in "$PROJ_DIR$\TraceX_traces.trx". 
+      This file can be opened through Azure RTOS TraceX Microsoft desktop application.
+      Details to use this dapplication can be found here:
+      https://learn.microsoft.com/en-us/azure/rtos/tracex/       
+
 
 @par How to use it ? 
 
@@ -88,7 +104,7 @@ https://wiki.st.com/stm32mcu/wiki/Connectivity:STM32WB_BLE_Hardware_Setup
 In order to make the program work, you must do the following:
  - Open your toolchain 
  - Rebuild all files and flash the board with the executable file
- - OR use the BLE_HeartRate_reference.hex from Binary directory
+ - OR use the BLE_p2pServerThreadX_reference.hex from Binary directory
 
  On the android/ios device, enable the Bluetooth communications, and if not done before,
  - Install the ST BLE Sensor and/or ST BLE Toolbox applications:
@@ -97,7 +113,7 @@ In order to make the program work, you must do the following:
 
 First demonstration
 
- - Power on the Nucleo board with the BLE_P2P_Server application
+ - Power on the Nucleo board with the BLE_p2pServerThreadX application
  - Then, click on the App icon, ST BLE Sensor (android device)
  - connect to the device
  - select the P2PSRVX1 in the device list and play with the Light and the SW1 button of the board

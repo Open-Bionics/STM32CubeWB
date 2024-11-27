@@ -36,6 +36,9 @@
 #include "vcp.h"
 #include "vcp_conf.h"
 #endif /* (CFG_USB_INTERFACE_ENABLE != 0) */
+#ifdef ENABLE_OPENTHREAD_CLI
+#include "uart.h"
+#endif /* ENABLE_OPENTHREAD_CLI */
 
 /* Private includes -----------------------------------------------------------*/
 
@@ -96,6 +99,9 @@ static uint32_t ProcessCmdString(uint8_t* buf , uint32_t len);
 static void RxCpltCallback(void);
 #endif /* (CFG_FULL_LOW_POWER == 0) */
 #endif /* (CFG_USB_INTERFACE_ENABLE != 0) */
+#ifdef ENABLE_OPENTHREAD_CLI
+extern void otAppCliInit(otInstance *aInstance);
+#endif /* ENABLE_OPENTHREAD_CLI */
 
 /* USER CODE BEGIN PFP */
 static void APP_THREAD_CoapSendRequest( otCoapResource          * aCoapRessource,
@@ -147,24 +153,17 @@ static TL_EvtPacket_t *p_thread_notif_M0_to_M4;
 static __IO uint32_t  CptReceiveMsgFromM0 = 0;
 
 TX_THREAD OsTaskMessageM0ToM4Id;
-TX_THREAD OsTaskRequestM0ToM4Id;
-TX_THREAD OsTaskNwkFormId;
 TX_THREAD OsTaskSendCliToM0;
 TX_THREAD OsTaskCoapNotConfirmable;
 TX_THREAD OsTaskCoapConfirmable;
+
 TX_MUTEX MtxThreadId;
 
 TX_SEMAPHORE TransferToM0Semaphore;
-TX_SEMAPHORE StartupEndSemaphore;
-
-TX_SEMAPHORE NWKFormSemaphore; 
 TX_SEMAPHORE MessageM0ToM4Semaphore;
-TX_SEMAPHORE RequestM0ToM4Semaphore;
 TX_SEMAPHORE CoapNonConfSemaphore;
 TX_SEMAPHORE CoapConfSemaphore;
 TX_SEMAPHORE SendCliCmdSemaphore;
-TX_SEMAPHORE TimerSemaphore;
-
 
 PLACE_IN_SECTION("MB_MEM1") ALIGN(4) static TL_TH_Config_t ThreadConfigBuffer;
 PLACE_IN_SECTION("MB_MEM2") ALIGN(4) static TL_CmdPacket_t ThreadOtCmdBuffer;
@@ -248,18 +247,14 @@ void APP_THREAD_Init(TX_BYTE_POOL* p_byte_pool)
   tx_mutex_create(&MtxThreadId, "MtxThreadId", TX_NO_INHERIT);
 
   /* Initialize the semaphores */
-  tx_semaphore_create(&StartupEndSemaphore, "StartupEndSemaphore", 0);
   tx_semaphore_create(&TransferToM0Semaphore, "TransferToM0Semaphore", 0);
   tx_semaphore_create(&MessageM0ToM4Semaphore, "MessageM0ToM4Semaphore", 0);
   tx_semaphore_create(&CoapNonConfSemaphore, "CoapNonConfSemaphore", 0);
   tx_semaphore_create(&CoapConfSemaphore, "CoapConfSemaphore", 0);
-  tx_semaphore_create(&TimerSemaphore, "TimerSemaphore", 0);
-
-
 
   /* Create the different tasks */
   /* Task to manage the messages from the M0 to the M4 */
-  tx_byte_allocate(p_byte_pool, (VOID**) &pointer, DEMO_STACK_SIZE_LARGE, TX_NO_WAIT);
+  ThreadXStatus = tx_byte_allocate(p_byte_pool, (VOID**) &pointer, DEMO_STACK_SIZE_LARGE, TX_NO_WAIT);
   ThreadXStatus = tx_thread_create(&OsTaskMessageM0ToM4Id,
                                    "MessageM0ToM4",
                                    APP_THREAD_ProcessMsgM0ToM4,
@@ -428,14 +423,19 @@ static void APP_THREAD_DeviceConfig(void)
   otError error;
   otNetworkKey networkKey = {{0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}};
 
+#ifdef ENABLE_OPENTHREAD_CLI
+  static otInstance *PtOpenThreadInstance;
+  otInstanceFinalize(NULL);
+  PtOpenThreadInstance = otInstanceInitSingle();
+  otAppCliInit(PtOpenThreadInstance);
+#endif /* ENABLE_OPENTHREAD_CLI */
+  
   error = otInstanceErasePersistentInfo(NULL);
   if (error != OT_ERROR_NONE)
   {
     APP_THREAD_Error(ERR_THREAD_ERASE_PERSISTENT_INFO,error);
   }
   
-  otInstanceFinalize(NULL);
-  otInstanceInitSingle();
   error = otSetStateChangedCallback(NULL, APP_THREAD_StateNotif, NULL);
   if (error != OT_ERROR_NONE)
   {
@@ -1406,6 +1406,24 @@ static void Send_CLI_To_M0_Task(ULONG argument)
  */
 static void Send_CLI_To_M0(void)
 {
+#ifdef ENABLE_OPENTHREAD_CLI
+  /* Don't use the ThreadCliCmdBuffer when buffer is too large as data may be overwritten.
+     Use locals variables instead */
+  uint16_t l_plen = 0;
+  uint8_t l_ThreadCliCmdBuffer[255] = {0};
+  
+  memcpy(l_ThreadCliCmdBuffer, CommandString, indexReceiveChar);
+  l_plen = indexReceiveChar;
+  
+    /* Clear receive buffer, character counter and command complete */
+  CptReceiveCmdFromUser = 0;
+  indexReceiveChar = 0;
+  memset(CommandString, 0, C_SIZE_CMD_STRING);
+  
+  APP_DBG("[Send_CLI_To_M0] payload : %s", l_ThreadCliCmdBuffer);
+
+  otPlatUartReceived(l_ThreadCliCmdBuffer, l_plen);  
+#else
   memset(ThreadCliCmdBuffer.cmdserial.cmd.payload, 0x0U, 255U);
   memcpy(ThreadCliCmdBuffer.cmdserial.cmd.payload, CommandString, indexReceiveChar);
   ThreadCliCmdBuffer.cmdserial.cmd.plen = indexReceiveChar;
@@ -1417,8 +1435,42 @@ static void Send_CLI_To_M0(void)
   memset(CommandString, 0, C_SIZE_CMD_STRING);
 
   TL_CLI_SendCmd();
+#endif /* ENABLE_OPENTHREAD_CLI */
 }
 #endif /* (CFG_FULL_LOW_POWER == 0) */
+
+#ifdef ENABLE_OPENTHREAD_CLI
+/**
+ * @brief  Wrapper function to flush UART data (called from the OpenThread stack)
+           Not used but definition needed.
+ * @param  None
+ * @retval OT_ERROR_NONE
+ */
+otError otPlatUartFlush(void)
+{
+  return OT_ERROR_NONE;
+}
+
+/**
+ * @brief  Wrapper function to send data through the UART from the OpenThread stack
+ * @param  aBuf: Buffer of data to transmit
+ * @param  aBufLength: Number of data to transmit (in bytes)
+ * @retval OT_ERROR_NONE
+ */
+otError otPlatUartSend(const uint8_t *aBuf, uint16_t aBufLength)
+{
+   /* WORKAROUND: if string to output is "> " then respond directly to M0 and do not output it */
+  if (strcmp((const char *)aBuf, "> ") != 0)
+  {
+    /* Write to CLI UART */
+    HW_UART_Transmit(CFG_CLI_UART, (uint8_t*)aBuf, aBufLength, 100);
+  }
+
+  otPlatUartSendDone();
+  
+  return OT_ERROR_NONE;
+}
+#endif /* ENABLE_OPENTHREAD_CLI */
 
 /**
  * @brief Send notification for CLI TL Channel.

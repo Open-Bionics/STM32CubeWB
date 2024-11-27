@@ -1,23 +1,28 @@
-/**
-*****************************************************************************
+/*
+******************************************************************************
 **
-**  File        : stm32wb55xx_flash_cm4.ld
+**  File        : LinkerScript.ld
 **
-**  Abstract    : STM32CubeIDE Minimal System calls file
+**  Author		: STM32CubeIDE
 **
-** 		          For more information about which c-functions
-**                need which of these lowlevel functions
-**                please consult the Newlib libc-manual
+**  Abstract    : Linker script for STM32WB55xG Device
+**                      1024Kbytes ROM
+**                      256Kbytes RAM
 **
-**  Environment : STM32CubeIDE for MCU
+**                Set heap size, stack size and stack location according
+**                to application requirements.
 **
-**  Distribution: The file is distributed as is, without any warranty
+**                Set memory bank area and size if external memory is used.
+**
+**  Target      : STMicroelectronics STM32
+**
+**  Distribution: The file is distributed as is without any warranty
 **                of any kind.
 **
 *****************************************************************************
 ** @attention
 **
-** Copyright (c) 2019 STMicroelectronics.
+** Copyright (c) 2020 STMicroelectronics.
 ** All rights reserved.
 **
 ** This software is licensed under terms that can be found in the LICENSE file
@@ -33,8 +38,8 @@ ENTRY(Reset_Handler)
 /* Highest address of the user mode stack */
 _estack = 0x20030000;    /* end of RAM */
 /* Generate a link error if heap and stack don't fit into RAM */
-_Min_Heap_Size = 0x400 ;      /* required amount of heap  */
-_Min_Stack_Size = 0x1000 ;   /* required amount of stack */
+_Min_Heap_Size = 0x400 ;  /* required amount of heap  */
+_Min_Stack_Size = 0x1000 ; /* required amount of stack */
 
 /* Specify the memory areas */
 MEMORY
@@ -81,27 +86,31 @@ SECTIONS
     . = ALIGN(4);
   } >FLASH
 
-  .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >FLASH
-  .ARM : {
+  .ARM.extab (READONLY) : /* The READONLY keyword is only supported in GCC11 and later, remove it if using GCC10 or earlier. */
+  {
+    *(.ARM.extab* .gnu.linkonce.armextab.*)
+  } >FLASH
+  .ARM (READONLY) : /* The READONLY keyword is only supported in GCC11 and later, remove it if using GCC10 or earlier. */
+  {
     __exidx_start = .;
     *(.ARM.exidx*)
     __exidx_end = .;
   } >FLASH
 
-  .preinit_array     :
+  .preinit_array (READONLY) : /* The READONLY keyword is only supported in GCC11 and later, remove it if using GCC10 or earlier. */
   {
     PROVIDE_HIDDEN (__preinit_array_start = .);
     KEEP (*(.preinit_array*))
     PROVIDE_HIDDEN (__preinit_array_end = .);
   } >FLASH
-  .init_array :
+  .init_array (READONLY) : /* The READONLY keyword is only supported in GCC11 and later, remove it if using GCC10 or earlier. */
   {
     PROVIDE_HIDDEN (__init_array_start = .);
     KEEP (*(SORT(.init_array.*)))
     KEEP (*(.init_array*))
     PROVIDE_HIDDEN (__init_array_end = .);
   } >FLASH
-  .fini_array :
+  .fini_array (READONLY) : /* The READONLY keyword is only supported in GCC11 and later, remove it if using GCC10 or earlier. */
   {
     PROVIDE_HIDDEN (__fini_array_start = .);
     KEEP (*(SORT(.fini_array.*)))
@@ -124,7 +133,6 @@ SECTIONS
     _edata = .;        /* define a global symbol at data end */
   } >RAM1 AT> FLASH
 
-  
   /* Uninitialized data section */
   . = ALIGN(4);
   .bss :
@@ -152,8 +160,6 @@ SECTIONS
     . = ALIGN(8);
   } >RAM1
 
-  
-
   /* Remove information from the standard libraries */
   /DISCARD/ :
   {
@@ -167,5 +173,3 @@ SECTIONS
    MB_MEM1 (NOLOAD)       : { *(MB_MEM1) } >RAM_SHARED
    MB_MEM2 (NOLOAD)       : { _sMB_MEM2 = . ; *(MB_MEM2) ; _eMB_MEM2 = . ; } >RAM_SHARED
 }
-
-

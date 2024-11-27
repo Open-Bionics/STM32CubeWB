@@ -77,6 +77,8 @@ static bool APP_ZIGBEE_NVM_Diag_DataValidation(void);
 static void Wait_Getting_Ack_From_M0(void);
 static void Receive_Ack_From_M0(void);
 static void Receive_Notification_From_M0(void);
+static void APP_ZIGBEE_ProcessNotifyM0ToM4(void);
+static void APP_ZIGBEE_ProcessRequestM0ToM4(void);
 
 /* Private variables -----------------------------------------------*/
 static TL_CmdPacket_t *p_ZIGBEE_otcmdbuffer;
@@ -134,9 +136,13 @@ union cache
   uint8_t  U8_data[ST_PERSIST_MAX_ALLOC_SZ];     // in bytes 
   uint32_t U32_data[ST_PERSIST_MAX_ALLOC_SZ/4U]; // in U32 words
 };
-__attribute__ ((section(".noinit"))) union cache cache_persistent_data;
+// __attribute__ ((section(".noinit"))) union cache cache_persistent_data;
 
-__attribute__ ((section(".noinit"))) union cache cache_diag_reference;
+// __attribute__ ((section(".noinit"))) union cache cache_diag_reference;
+
+union cache cache_persistent_data;
+union cache cache_diag_reference;
+
 
 /* timer to delay reading attribute back from persistence */
 //static uint8_t TS_ID1; 
@@ -424,8 +430,9 @@ enum ZbStatusCodeT ZbStartupWait(struct ZigBeeT *zb, struct ZbStartupT *config)
 
   info->active = true;
   status = ZbStartup(zb, config, ZbStartupWaitCb, info);
-  if (status != ZB_STATUS_SUCCESS) {
-    info->active = false;
+  if (status != ZB_STATUS_SUCCESS)
+  {
+    free(info);
     return status;
   }
   UTIL_SEQ_WaitEvt(EVENT_ZIGBEE_STARTUP_ENDED);
@@ -697,6 +704,13 @@ static bool APP_ZIGBEE_NVM_Read(void)
             /* copy the read data from Flash to cache including length */
             for (uint16_t local_length = 1; local_length <= num_words; local_length++)
             {
+            	if (local_length >= ST_PERSIST_MAX_ALLOC_SZ/4)
+            	{
+                    APP_DBG("Local length exceeds the size of the cache persistent data!");
+                    status = false;
+                    break;
+            	}
+
                 /* read data from first data in U32 unit */
                 ee_status = EE_Read(0, local_length + ZIGBEE_DB_START_ADDR, &cache_persistent_data.U32_data[local_length] );
                 if (ee_status != EE_OK)
@@ -1142,22 +1156,21 @@ static void APP_ZIGBEE_NVM_Diag_Exec(void)
   }
   if(write_err)
   {
-     APP_DBG("TEST #%d --> FAILED (write error)",test);
+     APP_DBG("NVM DIAGNOSTIC TESTS STATUS #%d --> FAILED (write error)",test);
   }
   else if(read_err)
   {
-     APP_DBG("TEST #%d --> FAILED (read error)",test);
+     APP_DBG("NVM DIAGNOSTIC TESTS STATUS #%d --> FAILED (read error)",test);
   }
   else if(data_err)
   {
-     APP_DBG("TEST #%d --> FAILED (data integrity error)",test);
+     APP_DBG("NVM DIAGNOSTIC TESTS STATUS #%d --> FAILED (data integrity error)",test);
   }
-  else{}
+  else{
+    APP_DBG("NVM DIAGNOSTIC TESTS STATUS #%d --> PASSED",test);
+  }
   APP_DBG("");
   APP_DBG("NVM DIAGNOSTIC TESTS IS OVER");
-  
-  
-  
 }
 
 /**
@@ -1347,31 +1360,26 @@ void APP_ZIGBEE_TL_INIT(void)
  * @param  None
  * @retval None
  */
-void APP_ZIGBEE_ProcessNotifyM0ToM4(void)
+static void APP_ZIGBEE_ProcessNotifyM0ToM4(void)
 {
-    if (CptReceiveNotifyFromM0 != 0) {
-        /* If CptReceiveNotifyFromM0 is > 1. it means that we did not serve all the events from the radio */
-        if (CptReceiveNotifyFromM0 > 1U) {
-            APP_ZIGBEE_Error(ERR_REC_MULTI_MSG_FROM_M0, 0);
-        }
-        else {
-            Zigbee_CallBackProcessing();
-        }
-        /* Reset counter */
-        CptReceiveNotifyFromM0 = 0;
-    }
+  if (CptReceiveNotifyFromM0 != 0)
+  {
+    /* Reset counter */
+    CptReceiveNotifyFromM0 = 0;
+    Zigbee_CallBackProcessing();
+  }
 }
 
 /**
  * @brief Process the requests coming from the M0.
- * @param  None
+ * @param None
  * @return None
  */
-void APP_ZIGBEE_ProcessRequestM0ToM4(void)
+static void APP_ZIGBEE_ProcessRequestM0ToM4(void)
 {
     if (CptReceiveRequestFromM0 != 0) {
-        Zigbee_M0RequestProcessing();
-        CptReceiveRequestFromM0 = 0;
+      CptReceiveRequestFromM0 = 0;
+      Zigbee_M0RequestProcessing();
     }
 }
 

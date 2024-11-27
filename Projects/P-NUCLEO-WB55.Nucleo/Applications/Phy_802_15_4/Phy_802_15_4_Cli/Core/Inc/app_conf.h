@@ -82,6 +82,7 @@
 #if (CFG_FULL_LOW_POWER == 1)
 #undef CFG_LPM_SUPPORTED
 #define CFG_LPM_SUPPORTED   1
+#define CFG_PHY_CLI_LPM     1
 #endif /* CFG_FULL_LOW_POWER */
 
 // In LLD tests, need to support LPM without FULL low-power
@@ -171,8 +172,8 @@ typedef enum
  * Debug
  ******************************************************************************/
 /**
- * When set, this resets some hw resources to set the device in the same state than the power up
- * The FW resets only register that may prevent the FW to run properly
+ * When set, this resets some hw resources to put the device in the same state as at power up.
+ * It resets only register that may prevent the FW to run properly.
  *
  * This shall be set to 0 in a final product
  *

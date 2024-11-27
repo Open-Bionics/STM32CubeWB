@@ -30,8 +30,6 @@
 #include "stm32_lpm.h"
 #include "app_debug.h"
 
-
-
 #include "appli_mesh.h"
 #include "appli_nvm.h"
 #include "pal_nvm.h"
@@ -70,6 +68,10 @@ extern volatile uint8_t BleProcessInit;
 #endif
 
 /* USER CODE BEGIN PTD */
+/* Section specific to button management using UART */
+EXTI_HandleTypeDef exti_handle;
+extern uint8_t LongPressButton;
+extern uint8_t button_emulation;
 
 /* USER CODE END PTD */
 
@@ -77,7 +79,9 @@ extern volatile uint8_t BleProcessInit;
 #define POOL_SIZE (CFG_TLBLE_EVT_QUEUE_LENGTH*4U*DIVC(( sizeof(TL_PacketHeader_t) + TL_BLE_EVENT_FRAME_SIZE ), 4U))
 
 /* USER CODE BEGIN PD */
-
+/* Section specific to button management using UART */
+#define C_SIZE_CMD_STRING       256U
+#define RX_BUFFER_SIZE          8U
 /* USER CODE END PD */
 
 /* Private macros ------------------------------------------------------------*/
@@ -92,7 +96,10 @@ PLACE_IN_SECTION("MB_MEM2") ALIGN(4) static uint8_t SystemSpareEvtBuffer[sizeof(
 PLACE_IN_SECTION("MB_MEM2") ALIGN(4) static uint8_t	BleSpareEvtBuffer[sizeof(TL_PacketHeader_t) + TL_EVT_HDR_SIZE + 255];
 
 /* USER CODE BEGIN PV */
-
+/* Section specific to button management using UART */
+static uint8_t aRxBuffer[RX_BUFFER_SIZE];
+static uint8_t CommandString[C_SIZE_CMD_STRING];
+static uint16_t indexReceiveChar = 0;
 /* USER CODE END PV */
 
 /* Private functions prototypes-----------------------------------------------*/
@@ -112,6 +119,15 @@ extern void MX_USART1_UART_Init(void);
 
 /* USER CODE BEGIN PFP */
 static void Button_Init( void );
+
+/* Section specific to button management using UART */
+static void RxUART_Init(void);
+static void RxCpltCallback(void);
+static void UartCmdExecute(void);
+
+extern void Appli_LongButtonPress(void);
+extern void Appli_ShortButtonPress(void);
+
 /* USER CODE END PFP */
 
 uint8_t Mesh_Stop_Mode;
@@ -137,6 +153,9 @@ void APPE_Init( void )
   //Switch RGB LED off
   LED_Off();
   Button_Init();
+
+  RxUART_Init();
+
   BSP_I2C3_Init();
 
   mobleNvmBase = (const void *)(last_user_flash_address - NVM_SIZE);
@@ -503,7 +522,27 @@ void HAL_GPIO_EXTI_Callback( uint16_t GPIO_Pin )
 
   case GPIO_PIN_12: //BUTTON_SW1_PIN
       {
-        UTIL_SEQ_SetTask( 1<<CFG_TASK_MESH_SW1_REQ_ID, CFG_SCH_PRIO_0);
+       if (button_emulation != 1){
+          UTIL_SEQ_SetTask( 1<<CFG_TASK_MESH_SW1_REQ_ID, CFG_SCH_PRIO_0);
+      }
+      else{
+        if (LongPressButton==1){
+#ifdef ENABLE_SENSOR_MODEL_CLIENT
+          /* Button 1 long press action */
+          APP_DBG_MSG("The Client ask the Time Of Flight measurement to the Server \n");
+          Appli_LongButtonPress();
+#endif
+          LongPressButton = 0;
+        }
+        else{
+#ifdef ENABLE_SENSOR_MODEL_CLIENT 
+          /* Button 1 short press action */
+          APP_DBG_MSG("The Client ask the Temperature to the Server \n");
+          Appli_ShortButtonPress();
+#endif
+        }
+        button_emulation = 0;
+      }        
       }
       break;
 
@@ -523,4 +562,65 @@ void HAL_GPIO_EXTI_Callback( uint16_t GPIO_Pin )
   }
   return;
 }
+
+
+
+static void RxUART_Init(void)
+{
+  HW_UART_Receive_IT((hw_uart_id_t)CFG_DEBUG_TRACE_UART, aRxBuffer, 1U, RxCpltCallback);
+}
+
+static void RxCpltCallback(void)
+{
+  /* Filling buffer and wait for '\r' char */
+  if (indexReceiveChar < C_SIZE_CMD_STRING)
+  {
+    if (aRxBuffer[0] == '\r')
+    {
+      APP_DBG_MSG("received %s\n", CommandString);
+
+      UartCmdExecute();
+
+      /* Clear receive buffer and character counter*/
+      indexReceiveChar = 0;
+      memset(CommandString, 0, C_SIZE_CMD_STRING);
+    }
+    else
+    {
+      CommandString[indexReceiveChar++] = aRxBuffer[0];
+    }
+  }
+
+  /* Once a character has been sent, put back the device in reception mode */
+  HW_UART_Receive_IT((hw_uart_id_t)CFG_DEBUG_TRACE_UART, aRxBuffer, 1U, RxCpltCallback);
+}
+
+static void UartCmdExecute(void)
+{
+  /* Parse received CommandString */
+  if(strcmp((char const*)CommandString, "SW1") == 0)
+  {
+    APP_DBG_MSG("SW1 OK\n");
+    exti_handle.Line = BUTTON_USER1_EXTI_LINE;
+    HAL_EXTI_GenerateSWI(&exti_handle);
+    button_emulation=1;
+  }
+  else if (strcmp((char const*)CommandString, "SW2") == 0)
+  {
+    APP_DBG_MSG("SW2 OK\n");
+    exti_handle.Line = BUTTON_USER2_EXTI_LINE;
+    HAL_EXTI_GenerateSWI(&exti_handle);
+    button_emulation=1;
+  }
+  else if (strcmp((char const*)CommandString, "LONG_PRESS") == 0)
+  {
+    APP_DBG_MSG("LONG_PRESS OK\n");
+    LongPressButton=1;
+  } 
+  else
+  {
+    APP_DBG_MSG("NOT RECOGNIZED COMMAND : %s\n", CommandString);
+  }
+}
+
 /* USER CODE END FD_WRAP_FUNCTIONS */

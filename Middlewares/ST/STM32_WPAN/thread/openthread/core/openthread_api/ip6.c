@@ -29,6 +29,10 @@
 
 #include "ip6.h"
 
+#ifdef ENABLE_OPENTHREAD_CLI
+#include "tmf.h"
+#endif
+
 #if OPENTHREAD_CONFIG_IP6_SLAAC_ENABLE
 extern otIp6SlaacPrefixFilter otIp6SlaacPrefixFilterCb;
 #endif // OPENTHREAD_CONFIG_IP6_SLAAC_ENABLE
@@ -442,6 +446,24 @@ otError otIp6AddressFromString(const char *aString, otIp6Address *aAddress)
   return (otError)p_ot_req->Data[0];
 }
 
+otError otIp6PrefixFromString(const char *aString, otIp6Prefix *aPrefix)
+{
+  Pre_OtCmdProcessing();
+  /* prepare buffer */
+  Thread_OT_Cmd_Request_t* p_ot_req = THREAD_Get_OTCmdPayloadBuffer();
+
+  p_ot_req->ID = MSG_M4TOM0_OT_IP6_PREFIX_FROM_STRING;
+
+  p_ot_req->Size=2;
+  p_ot_req->Data[0] = (uint32_t) aString;
+  p_ot_req->Data[1] = (uint32_t) aPrefix;
+
+  Ot_Cmd_Transfer();
+
+  p_ot_req = THREAD_Get_OTCmdRspPayloadBuffer();
+  return (otError)p_ot_req->Data[0];
+}
+
 void otIp6AddressToString(const otIp6Address *aAddress, char *aBuffer, uint16_t aSize)
 {
   Pre_OtCmdProcessing();
@@ -667,3 +689,47 @@ const char *otIp6ProtoToString(uint8_t aIpProto)
   return (char*)p_ot_req->Data[0];
 }
 
+void otIp6GetPrefix(const otIp6Address *aAddress, uint8_t aLength, otIp6Prefix *aPrefix)
+{
+  Pre_OtCmdProcessing();
+  /* prepare buffer */
+  Thread_OT_Cmd_Request_t* p_ot_req = THREAD_Get_OTCmdPayloadBuffer();
+
+  p_ot_req->ID = MSG_M4TOM0_OT_IP6_GET_PREFIX;
+
+  p_ot_req->Size=3;
+  p_ot_req->Data[0] = (uint32_t) aAddress;
+  p_ot_req->Data[1] = (uint32_t) aLength;
+  p_ot_req->Data[2] = (uint32_t) aPrefix;
+
+  Ot_Cmd_Transfer();
+}
+
+const otBorderRoutingCounters *otIp6GetBorderRoutingCounters(otInstance *aInstance)
+{
+  Pre_OtCmdProcessing();
+  /* prepare buffer */
+  Thread_OT_Cmd_Request_t* p_ot_req = THREAD_Get_OTCmdPayloadBuffer();
+
+  p_ot_req->ID = MSG_M4TOM0_OT_IP6_GET_BORDER_ROUTING_COUNTERS;
+
+  p_ot_req->Size=0;
+
+  Ot_Cmd_Transfer();
+
+  p_ot_req = THREAD_Get_OTCmdRspPayloadBuffer();
+  return (otBorderRoutingCounters*)p_ot_req->Data[0];
+}
+
+void otIp6ResetBorderRoutingCounters(otInstance *aInstance)
+{
+  Pre_OtCmdProcessing();
+  /* prepare buffer */
+  Thread_OT_Cmd_Request_t* p_ot_req = THREAD_Get_OTCmdPayloadBuffer();
+
+  p_ot_req->ID = MSG_M4TOM0_OT_IP6_RESET_BORDER_ROUTING_COUNTERS;
+
+  p_ot_req->Size=0;
+
+  Ot_Cmd_Transfer();
+}

@@ -107,7 +107,7 @@ enum
 {
   CHAR_CTRLC = 3,
   CHAR_ESC   = 27,
-  CHAR_DEL   = 127
+  CHAR_DEL   = 8
 };
 
 static uint8_t  txBusy;
@@ -133,8 +133,6 @@ PLACE_IN_SECTION("MB_MEM2") ALIGN(4) static TL_CmdPacket_t LldTestsM0CmdPacket;
 PLACE_IN_SECTION("MB_MEM2") ALIGN(4) static TL_CmdPacket_t LldTestsCliCmdRspPacket;
 
 /* USER CODE BEGIN PV */
-
-/* USER CODE END PV */
 
 /* Functions Definition ------------------------------------------------------*/
 

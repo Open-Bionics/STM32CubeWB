@@ -56,6 +56,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/Core/Src/app_entry.c</locationURI>
 		</link>
 		<link>
+			<name>Application/Core/flash_driver.c</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/Core/Src/flash_driver.c</locationURI>
+		</link>
+		<link>
 			<name>Application/Core/hw_timerserver.c</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/Core/Src/hw_timerserver.c</locationURI>
@@ -71,9 +76,9 @@
 			<locationURI>PARENT-1-PROJECT_LOC/Core/Src/main.c</locationURI>
 		</link>
 		<link>
-			<name>Application/Core/standby_stm32wb15.c</name>
+			<name>Application/Core/standby.c</name>
 			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/Core/Src/standby_stm32wb15.c</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/Core/Src/standby.c</locationURI>
 		</link>
 		<link>
 			<name>Application/Core/stm32_lpm_if.c</name>
@@ -84,11 +89,6 @@
 			<name>Application/Core/stm32wbxx_it.c</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/Core/Src/stm32wbxx_it.c</locationURI>
-		</link>
-        <link>
-			<name>Application/Core/flash_driver.c</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/Core/Src/flash_driver.c</locationURI>
 		</link>
 		<link>
 			<name>Drivers/CMSIS/system_stm32wbxx.c</name>

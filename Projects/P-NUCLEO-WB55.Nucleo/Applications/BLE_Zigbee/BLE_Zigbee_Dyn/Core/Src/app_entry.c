@@ -31,6 +31,7 @@
 #include "stm32_lpm.h"
 #include "app_ble.h"
 #include "shci.h"
+#include "app_debug.h"
 
 /* Private includes -----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -39,7 +40,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+EXTI_HandleTypeDef exti_handle;
 /* USER CODE END PTD */
 
 /* Private defines -----------------------------------------------------------*/
@@ -52,6 +53,9 @@
 #define T_200MS                 (200*T_1MS_NB_TICKS)
 #define T_2S                    (2*T_1S_NB_TICKS)
 /* USER CODE BEGIN PD */
+/* Section specific to button management using UART */
+#define C_SIZE_CMD_STRING       256U
+#define RX_BUFFER_SIZE          8U
 
 /* USER CODE END PD */
 /* Private variables ---------------------------------------------------------*/
@@ -67,6 +71,11 @@ PLACE_IN_SECTION("MB_MEM2") ALIGN(4) static uint8_t	BleSpareEvtBuffer[sizeof(TL_
 /* SELECT THE PROTOCOL THAT WILL START FIRST (BLE or ZIGBEE) */
 static SHCI_C2_CONCURRENT_Mode_Param_t ConcurrentMode = BLE_ENABLE;
 //static SHCI_C2_CONCURRENT_Mode_Param_t ConcurrentMode = ZIGBEE_ENABLE;
+
+/* Section specific to button management using UART */
+static uint8_t aRxBuffer[RX_BUFFER_SIZE];
+static uint8_t CommandString[C_SIZE_CMD_STRING];
+static uint16_t indexReceiveChar = 0;
 
 /* Global variables ----------------------------------------------------------*/
 
@@ -85,6 +94,12 @@ static void appe_Tl_Init( void );
 /* USER CODE BEGIN PFP */
 static void Led_Init( void );
 static void Button_Init( void );
+
+/* Section specific to button management using UART */
+static void RxUART_Init(void);
+static void RxCpltCallback(void);
+static void UartCmdExecute(void);
+
 /* USER CODE END PFP */
 
 
@@ -98,6 +113,8 @@ void APPE_Init( void )
   Init_Debug();
 
   APP_DBG("ConcurrentMode = %d", ConcurrentMode);
+  
+  APPD_Init();
 
   /**
    * The Standby mode should not be entered before the initialization is over
@@ -108,6 +125,8 @@ void APPE_Init( void )
   Led_Init();
 
   Button_Init();
+
+  RxUART_Init();
 
   appe_Tl_Init(); /**< Initialize all transport layers */
 
@@ -291,7 +310,7 @@ static void APPE_SysEvtError( SCHI_SystemErrCode_t ErrorCode)
 static void APPE_SysEvtReadyProcessing( void )
 {
     /* Traces channel initialization */
-    TL_TRACES_Init();
+    APPD_EnableCPU2();
 
     APP_DBG("==> Start_BLE");   /* Start BLE first */
     APP_BLE_Init();
@@ -498,5 +517,62 @@ void HAL_GPIO_EXTI_Callback( uint16_t GPIO_Pin )
     break;
   }
   return;
+}
+
+static void RxUART_Init(void)
+{
+  HW_UART_Receive_IT((hw_uart_id_t)CFG_DEBUG_TRACE_UART, aRxBuffer, 1U, RxCpltCallback);
+}
+
+static void RxCpltCallback(void)
+{
+  /* Filling buffer and wait for '\r' char */
+  if (indexReceiveChar < C_SIZE_CMD_STRING)
+  {
+    if (aRxBuffer[0] == '\r')
+    {
+      APP_DBG_MSG("received %s\n", CommandString);
+
+      UartCmdExecute();
+
+      /* Clear receive buffer and character counter*/
+      indexReceiveChar = 0;
+      memset(CommandString, 0, C_SIZE_CMD_STRING);
+    }
+    else
+    {
+      CommandString[indexReceiveChar++] = aRxBuffer[0];
+    }
+  }
+
+  /* Once a character has been sent, put back the device in reception mode */
+  HW_UART_Receive_IT((hw_uart_id_t)CFG_DEBUG_TRACE_UART, aRxBuffer, 1U, RxCpltCallback);
+}
+
+static void UartCmdExecute(void)
+{
+  /* Parse received CommandString */
+  if(strcmp((char const*)CommandString, "SW1") == 0)
+  {
+    APP_DBG_MSG("SW1 OK\n");
+    exti_handle.Line = EXTI_LINE_4;
+    HAL_EXTI_GenerateSWI(&exti_handle);
+  }
+  else if (strcmp((char const*)CommandString, "SW2") == 0)
+  {
+    APP_DBG_MSG("SW2 OK\n");
+    exti_handle.Line = EXTI_LINE_0;
+    HAL_EXTI_GenerateSWI(&exti_handle);
+  }
+  else if (strcmp((char const*)CommandString, "SW3") == 0)
+  {
+    APP_DBG_MSG("SW3 OK\n");
+    exti_handle.Line = EXTI_LINE_1;
+    HAL_EXTI_GenerateSWI(&exti_handle);
+  }
+  else
+  {
+    APP_DBG_MSG("NOT RECOGNIZED COMMAND : %s\n", CommandString);
+  }
 }
 /* USER CODE END FD_WRAP_FUNCTIONS */

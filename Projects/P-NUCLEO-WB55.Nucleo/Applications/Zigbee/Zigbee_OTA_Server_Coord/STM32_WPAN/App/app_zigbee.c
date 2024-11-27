@@ -42,7 +42,9 @@
 #define CHANNEL                                19
 #define HW_TS_SERVER_1S_NB_TICKS               (1*1000*1000/CFG_TS_TICK_VAL)
 #define OTA_CLIENT_UPGRADE_DELAY               5       /* 5s */
-   
+
+#define APP_ZIGBEE_PERMIT_JOIN_DELAY           60u   /* 60s */
+
 /* external definition */
 enum ZbStatusCodeT ZbStartupWait(struct ZigBeeT *zb, struct ZbStartupT *config);
 
@@ -87,6 +89,8 @@ static void APP_ZIGBEE_CheckWirelessFirmwareInfo(void);
 static void Wait_Getting_Ack_From_M0(void);
 static void Receive_Ack_From_M0(void);
 static void Receive_Notification_From_M0(void);
+static void APP_ZIGBEE_ProcessNotifyM0ToM4(void);
+static void APP_ZIGBEE_ProcessRequestM0ToM4(void);
 
 /* Private variables -----------------------------------------------*/
 static TL_CmdPacket_t *p_ZIGBEE_otcmdbuffer;
@@ -322,6 +326,7 @@ static enum ZclStatusCodeT APP_ZIGBEE_OTA_Server_UpgradeEnd_cb(struct ZbZclOtaIm
   uint32_t  upgrade_time;
   double    upgrade_troughput;
   struct APP_ZIGBEE_OtaServerInfo * server_info = (struct APP_ZIGBEE_OtaServerInfo *) arg;  
+  uint32_t lTransfertThroughputInt, lTransfertThroughputDec;
   
   APP_DBG("**************************************************************\n");
   APP_DBG("[OTA] Upgrade End request received.");
@@ -331,10 +336,13 @@ static enum ZclStatusCodeT APP_ZIGBEE_OTA_Server_UpgradeEnd_cb(struct ZbZclOtaIm
     case ZCL_STATUS_SUCCESS:
       upgrade_time = ( HAL_GetTick() - server_info->block_transfer.download_time ) / 1000;
       upgrade_troughput = (((double)server_info->requested_image_header.total_image_size / upgrade_time ) / 1000) * 8;
+      lTransfertThroughputInt = (uint32_t)upgrade_troughput;
+      lTransfertThroughputDec = (uint32_t)( ( upgrade_troughput - lTransfertThroughputInt ) * 100 );
       
       APP_DBG("UpgradeEnd status SUCCESS, responding with:");
       APP_DBG("  Upgrade time: %d", upgrade_time);
-      APP_DBG("  Average throughput: %.2f Kbits/s", upgrade_troughput);
+      //APP_DBG("  Average throughput: %.2f Kbits/s", upgrade_troughput);
+      APP_DBG("  - Average throughput = %d.%d kbit/s.", lTransfertThroughputInt, lTransfertThroughputDec );
       break;
 
     case ZCL_STATUS_INVALID_IMAGE:
@@ -354,7 +362,8 @@ static enum ZclStatusCodeT APP_ZIGBEE_OTA_Server_UpgradeEnd_cb(struct ZbZclOtaIm
       return ZCL_STATUS_FAILURE;
     }
   
-  
+  APP_DBG("**************************************************************\n");
+
   return ZCL_STATUS_SUCCESS;                                             
 }
 
@@ -751,13 +760,11 @@ static void APP_ZIGBEE_App_Init(void){
  * @retval None
  */
 static void APP_ZIGBEE_OTA_Server_Init(void){
-  uint64_t dlExtendedAddress;
+  uint16_t  iShortAddress;
   
-  //print EID
-  dlExtendedAddress = ZbExtendedAddress(zigbee_app_info.zb);
-  APP_DBG("OTA Server with EUI64 0x%016" PRIx64 ".", dlExtendedAddress );
-  
-  APP_DBG("OTA server init done!\n");  
+  iShortAddress = ZbShortAddress( zigbee_app_info.zb );
+  APP_DBG("OTA Server with Short Address 0x%04X.", iShortAddress );
+  APP_DBG("OTA Server init done!\n");
 } /* APP_ZIGBEE_OTA_Server_Init */
 
 /**
@@ -985,8 +992,9 @@ enum ZbStatusCodeT ZbStartupWait(struct ZigBeeT *zb, struct ZbStartupT *config)
 
   info->active = true;
   status = ZbStartup(zb, config, ZbStartupWaitCb, info);
-  if (status != ZB_STATUS_SUCCESS) {
-    info->active = false;
+  if (status != ZB_STATUS_SUCCESS)
+  {
+    free(info);
     return status;
   }
   UTIL_SEQ_WaitEvt(EVENT_ZIGBEE_STARTUP_ENDED);
@@ -1338,31 +1346,27 @@ void APP_ZIGBEE_TL_INIT(void)
  * @param  None
  * @retval None
  */
-void APP_ZIGBEE_ProcessNotifyM0ToM4(void)
+static void APP_ZIGBEE_ProcessNotifyM0ToM4(void)
 {
-    if (CptReceiveNotifyFromM0 != 0) {
-        /* If CptReceiveNotifyFromM0 is > 1. it means that we did not serve all the events from the radio */
-        if (CptReceiveNotifyFromM0 > 1U) {
-            APP_ZIGBEE_Error(ERR_REC_MULTI_MSG_FROM_M0, 0);
-        }
-        else {
-            Zigbee_CallBackProcessing();
-        }
-        /* Reset counter */
-        CptReceiveNotifyFromM0 = 0;
-    }
+  if (CptReceiveNotifyFromM0 != 0)
+  {
+    /* Reset counter */
+    CptReceiveNotifyFromM0 = 0;
+    Zigbee_CallBackProcessing();
+  }
 }
 
 /**
  * @brief Process the requests coming from the M0.
- * @param
- * @return
+ * @param None
+ * @return None
  */
-void APP_ZIGBEE_ProcessRequestM0ToM4(void)
+static void APP_ZIGBEE_ProcessRequestM0ToM4(void)
 {
     if (CptReceiveRequestFromM0 != 0) {
-        Zigbee_M0RequestProcessing();
         CptReceiveRequestFromM0 = 0;
+        Zigbee_M0RequestProcessing();
     }
 }
+
 

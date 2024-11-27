@@ -1,12 +1,13 @@
 /* USER CODE BEGIN Header */
 /**
   ***************************************************************************************
-  * File Name          : stm32_lpm_if.c
-  * Description        : Low layer function to enter/exit low power modes (stop, sleep).
+  * @file    stm32_lpm_if.c
+  * @author  MCD Application Team
+  * @brief   Low layer function to enter/exit low power modes (stop, sleep).
   ***************************************************************************************
   * @attention
   *
-  * Copyright (c) 2019-2021 STMicroelectronics.
+  * Copyright (c) 2019-2023 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -100,7 +101,7 @@ void PWR_EnterOffMode(void)
   /**
    * This option is used to ensure that store operations are completed
    */
-#if defined (__CC_ARM)
+#if defined (__CC_ARM) || defined (__ARMCC_VERSION)
   __force_stores();
 #endif
 
@@ -165,7 +166,7 @@ void PWR_EnterStopMode(void)
   /**
    * This option is used to ensure that store operations are completed
    */
-#if defined (__CC_ARM)
+#if defined (__CC_ARM) || defined (__ARMCC_VERSION)
   __force_stores();
 #endif
 
@@ -222,7 +223,7 @@ void PWR_EnterSleepMode(void)
   /**
    * This option is used to ensure that store operations are completed
    */
-#if defined (__CC_ARM)
+#if defined (__CC_ARM) || defined (__ARMCC_VERSION)
   __force_stores();
 #endif
 
@@ -310,9 +311,11 @@ static void ExitLowPower(void)
 /* USER CODE BEGIN ExitLowPower_1 */
     LL_RCC_HSE_Enable( );
     __HAL_FLASH_SET_LATENCY(FLASH_LATENCY_1);
+    while(__HAL_FLASH_GET_LATENCY() != FLASH_LATENCY_1);
     while(!LL_RCC_HSE_IsReady( ));
     LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_HSE);
     while (LL_RCC_GetSysClkSource( ) != LL_RCC_SYS_CLKSOURCE_STATUS_HSE);
+
 /* USER CODE END ExitLowPower_1 */
   }
   else

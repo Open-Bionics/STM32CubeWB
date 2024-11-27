@@ -115,7 +115,7 @@ void SerialPrvn_Process(char *rcvdStringBuff, uint16_t rcvdStringSize)
      /* Command to start the unprovisioned devices */
   else if (!strncmp(rcvdStringBuff+COMMAND_OFFSET, "RESET",5))
   {
-        BLEMesh_PrintStringCb("Reseting Board...\r\n");
+        BLEMesh_PrintStringCb("Resetting Board...\r\n");
         NVIC_SystemReset();
   }
   /* Command to scan the unprovisioned devices - Used By node only */
@@ -209,11 +209,12 @@ static MOBLE_RESULT SerialPrvn_UnProvisionDevice(char *text)
   {
     if(!BLEMesh_IsUnprovisioned())
     {
+      BLEMesh_PrintStringCb("Provisioner unprovisioning ...\r\n");
       Appli_Unprovision();
     }
     else
     {
-      BLEMesh_PrintStringCb("Device is already unprovisioned !\r\n");
+      BLEMesh_PrintStringCb("Provisioner is already unprovisioned !\r\n");
     }
   }
   else 

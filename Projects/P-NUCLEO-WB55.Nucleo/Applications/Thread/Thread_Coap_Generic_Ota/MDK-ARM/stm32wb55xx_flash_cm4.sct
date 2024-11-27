@@ -16,8 +16,8 @@ LR_IROM1 0x08010000 0x254 {    ; load region size_region
     *(MB_MEM2)
   } 
 }
-LR_IROM3 0x8010254 0x6FDAC {
-  ER_IROM1_HIGH 0x8010254 0x6FDAC {  ; load address = execution address	
+LR_IROM3 0x8010260 0x6FDA0 {
+  ER_IROM1_HIGH 0x8010260 0x6FDA0 {  ; load address = execution address	
 	*(InRoot$$Sections)
 	.ANY (+RO)  
 	*.o (TAG_OTA_END)	

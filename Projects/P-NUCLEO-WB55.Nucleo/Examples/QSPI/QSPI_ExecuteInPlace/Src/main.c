@@ -50,7 +50,7 @@ UART_HandleTypeDef huart1;
 PCD_HandleTypeDef hpcd_USB_FS;
 
 /* USER CODE BEGIN PV */
-#if defined(__CC_ARM)
+#if defined (__CC_ARM) || defined (__ARMCC_VERSION)
 extern uint32_t Load$$QSPI$$Base;
 extern uint32_t Load$$QSPI$$Length;
 #elif defined(__ICCARM__)
@@ -139,7 +139,7 @@ int main(void)
   flash_addr = 0;
   size = 0;
 
-#if defined(__CC_ARM)
+#if defined (__CC_ARM) || defined (__ARMCC_VERSION)
   max_size = (uint32_t)(&Load$$QSPI$$Length);
 #elif defined(__ICCARM__)
   max_size = __section_size(".qspi_init");
@@ -184,7 +184,7 @@ int main(void)
           /* Configure automatic polling mode to wait for end of erase ------- */
           QSPI_AutoPollingMemReady(&hqspi);
 
-#if defined(__CC_ARM)
+#if defined (__CC_ARM) || defined (__ARMCC_VERSION)
           flash_addr = (uint8_t *)(&Load$$QSPI$$Base);
 #elif defined(__ICCARM__)
           flash_addr = (uint8_t *)(__section_begin(".qspi_init"));
@@ -321,9 +321,11 @@ void SystemClock_Config(void)
   */
   HAL_PWR_EnableBkUpAccess();
   __HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_LOW);
+
   /** Configure the main internal regulator output voltage
   */
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
@@ -347,6 +349,7 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+
   /** Configure the SYSCLKSource, HCLK, PCLK1 and PCLK2 clocks dividers
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK4|RCC_CLOCKTYPE_HCLK2
@@ -363,6 +366,7 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+
   /** Enable MSI Auto calibration
   */
   HAL_RCCEx_EnableMSIPLLMode();
@@ -530,6 +534,8 @@ static void MX_DMA_Init(void)
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
+/* USER CODE BEGIN MX_GPIO_Init_1 */
+/* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
@@ -559,6 +565,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
+/* USER CODE BEGIN MX_GPIO_Init_2 */
+/* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */

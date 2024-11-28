@@ -57,8 +57,8 @@
 /**
  * Device name configuration for Generic Access Service
  */
-#define CFG_GAP_DEVICE_NAME             "TEMPLATE"
-#define CFG_GAP_DEVICE_NAME_LENGTH      (8)
+#define CFG_GAP_DEVICE_NAME             "OB2_EMG_DUT"
+#define CFG_GAP_DEVICE_NAME_LENGTH      (11)
 
 /**
 *   Identity root key used to derive IRK and DHK(Legacy)
@@ -75,7 +75,7 @@
  * SMPS not used when Set to 0
  * SMPS used when Set to 1
  */
-#define CFG_USE_SMPS    0
+#define CFG_USE_SMPS    1
 
 /* USER CODE BEGIN Generic_Parameters */
 /* USER CODE END Generic_Parameters */
@@ -84,7 +84,7 @@
 /*****************************************************/
 
 /* USER CODE BEGIN Specific_Parameters */
-#define PUSH_BUTTON_SW1_EXTI_IRQHandler                         EXTI4_IRQHandler
+// #define PUSH_BUTTON_SW1_EXTI_IRQHandler                         EXTI12_IRQHandler   // OB2 EMG Button: PC12
 
 /* USER CODE END Specific_Parameters */
 
@@ -360,7 +360,7 @@
 /**
  * Select UART interfaces
  */
-#define CFG_UART_GUI            hw_uart1
+#define CFG_UART_GUI            hw_lpuart1
 #define CFG_DEBUG_TRACE_UART    0
 /******************************************************************************
  * USB interface
@@ -565,8 +565,8 @@ typedef enum
 #define MAX_DBG_TRACE_MSG_SIZE   1024
 
 /* USER CODE BEGIN Defines */
-#define CFG_LED_SUPPORTED         1
-#define CFG_BUTTON_SUPPORTED      1
+#define CFG_LED_SUPPORTED         0
+#define CFG_BUTTON_SUPPORTED      0
 
 #define PUSH_BUTTON_SW1_EXTI_IRQHandler     EXTI4_IRQHandler
 #define PUSH_BUTTON_SW2_EXTI_IRQHandler     EXTI0_IRQHandler
@@ -660,4 +660,3 @@ typedef enum
 #define CFG_OTP_END_ADRESS      OTP_AREA_END_ADDR
 
 #endif /*APP_CONF_H */
-

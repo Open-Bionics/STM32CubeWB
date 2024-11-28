@@ -39,6 +39,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 extern RTC_HandleTypeDef hrtc;
+
 /* USER CODE BEGIN PTD */
 EXTI_HandleTypeDef exti_handle;
 
@@ -160,6 +161,7 @@ void MX_APPE_Init(void)
 /* USER CODE BEGIN APPE_Init_2 */
 
 /* USER CODE END APPE_Init_2 */
+
    return;
 }
 
@@ -368,10 +370,10 @@ static void APPE_SysUserEvtRx(TL_EvtPacket_t * p_evt_rx)
 {
   TL_AsynchEvt_t *p_sys_event;
   WirelessFwInfo_t WirelessInfo;
-  
+
   LST_insert_tail (&SysEvtQueue, (tListNode *)p_evt_rx);
-  
-  if (p_evt_rx->evtserial.evt.evtcode == SHCI_EVTCODE){
+
+ if (p_evt_rx->evtserial.evt.evtcode == SHCI_EVTCODE){
 
     p_sys_event = (TL_AsynchEvt_t *)(p_evt_rx->evtserial.evt.payload);
 
@@ -384,8 +386,8 @@ static void APPE_SysUserEvtRx(TL_EvtPacket_t * p_evt_rx)
     APP_DBG_MSG("Wireless Firmware build %d\n", WirelessInfo.VersionReleaseType);
     APP_DBG_MSG("FUS version %d.%d.%d\n", WirelessInfo.FusVersionMajor, WirelessInfo.FusVersionMinor, WirelessInfo.FusVersionSub);
       APP_DBG_MSG(">>== SHCI_SUB_EVT_CODE_READY\n\r");
-      UTIL_SEQ_SetTask(1<<CFG_TASK_SYSTEM_HCI_ASYNCH_EVT_ID, CFG_SCH_PRIO_0);
-      
+    UTIL_SEQ_SetTask(1<<CFG_TASK_SYSTEM_HCI_ASYNCH_EVT_ID, CFG_SCH_PRIO_0);
+
     case SHCI_SUB_EVT_ERROR_NOTIF:
       APP_DBG_MSG(">>== SHCI_SUB_EVT_ERROR_NOTIF \n\r");
       break;
@@ -414,7 +416,7 @@ static void APPE_SysUserEvtRx(TL_EvtPacket_t * p_evt_rx)
     case SHCI_SUB_EVT_NVM_END_ERASE:
       APP_DBG_MSG(">>== SHCI_SUB_EVT_NVM_END_ERASE\n\r");
       break;
-      
+
     default:
       break;
     }
@@ -504,7 +506,7 @@ void HAL_Delay(uint32_t Delay)
      */
   #if defined (__CC_ARM) || defined (__ARMCC_VERSION)
     __force_stores();
-  #endif /*__ARMCC_VERSION */
+  #endif /* __ARMCC_VERSION */
 
     __WFI();
   }
@@ -539,7 +541,6 @@ void UTIL_SEQ_Idle(void)
 void UTIL_SEQ_EvtIdle(UTIL_SEQ_bm_t task_id_bm, UTIL_SEQ_bm_t evt_waited_bm)
 {
   UTIL_SEQ_Run(UTIL_SEQ_DEFAULT);
-
   return;
 }
 

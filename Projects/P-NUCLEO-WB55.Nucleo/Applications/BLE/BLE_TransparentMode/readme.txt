@@ -74,7 +74,7 @@ Connectivity, BLE, IPCC, HSEM, RTC, UART, PWR, BLE protocol, Dual core
 
 @par How to use it ? 
 
-This application requires having the stm32wb5x_BLE_Stack_full_extended_fw.bin binary flashed on the Wireless Coprocessor.
+This application requires having the stm32wb5x_BLE_Stack_full_fw.bin binary flashed on the Wireless Coprocessor.
 If it is not the case, you need to use STM32CubeProgrammer to load the appropriate binary.
 All available binaries are located under /Projects/STM32_Copro_Wireless_Binaries directory.
 Refer to /Projects/STM32_Copro_Wireless_Binaries/ReleaseNote.html for the detailed procedure to change the

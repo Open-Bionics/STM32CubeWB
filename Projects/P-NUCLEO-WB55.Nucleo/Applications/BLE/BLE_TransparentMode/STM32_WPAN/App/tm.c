@@ -96,7 +96,7 @@ static void TM_SysLocalCmd(void);
 static void TM_TxToHost(void);
 static void TM_BleEvtRx(TL_EvtPacket_t *phcievt);
 static void TM_AclDataAck(void);
-extern void MX_LPUART1_UART_Init(void);
+extern void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -199,7 +199,7 @@ void TM_Init(void)
 
   LST_init_head (&HostTxQueue);
 
-  MX_LPUART1_UART_Init();
+  MX_USART1_UART_Init();
 
   pHostRx = RxHostData;
   HciReceiveStatus = WAITING_TYPE;

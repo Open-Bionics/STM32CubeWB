@@ -57,8 +57,8 @@
 /**
  * Device name configuration for Generic Access Service
  */
-#define CFG_GAP_DEVICE_NAME             "OB2_EMG_DUT"
-#define CFG_GAP_DEVICE_NAME_LENGTH      (11)
+#define CFG_GAP_DEVICE_NAME             "TEMPLATE"
+#define CFG_GAP_DEVICE_NAME_LENGTH      (8)
 
 /**
 *   Identity root key used to derive IRK and DHK(Legacy)
@@ -75,7 +75,7 @@
  * SMPS not used when Set to 0
  * SMPS used when Set to 1
  */
-#define CFG_USE_SMPS    1
+#define CFG_USE_SMPS    0
 
 /* USER CODE BEGIN Generic_Parameters */
 /* USER CODE END Generic_Parameters */
@@ -360,7 +360,7 @@
 /**
  * Select UART interfaces
  */
-#define CFG_UART_GUI            hw_lpuart1
+#define CFG_UART_GUI            hw_uart1
 #define CFG_DEBUG_TRACE_UART    0
 /******************************************************************************
  * USB interface
@@ -390,7 +390,7 @@
  *  When set to 1, the low power mode is enable
  *  When set to 0, the device stays in RUN mode
  */
-#define CFG_LPM_SUPPORTED    1
+#define CFG_LPM_SUPPORTED    0
 
 /******************************************************************************
  * RTC interface
@@ -499,7 +499,7 @@ typedef enum
  * keep debugger enabled while in any low power mode when set to 1
  * should be set to 0 in production
  */
-#define CFG_DEBUGGER_SUPPORTED    0
+#define CFG_DEBUGGER_SUPPORTED    1
 
 /**
  * When set to 1, the traces are enabled in the BLE services
@@ -623,7 +623,6 @@ typedef enum
   /* USER CODE BEGIN CFG_SCH_Prio_Id_t */
 
   /* USER CODE END CFG_SCH_Prio_Id_t */
-  CFG_SCH_PRIO_NBR
 } CFG_SCH_Prio_Id_t;
 
 /**

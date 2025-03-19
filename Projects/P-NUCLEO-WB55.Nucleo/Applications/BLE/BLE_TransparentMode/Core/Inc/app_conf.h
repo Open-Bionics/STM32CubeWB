@@ -360,7 +360,7 @@
 /**
  * Select UART interfaces
  */
-#define CFG_UART_GUI            hw_uart1
+#define CFG_UART_GUI            hw_lpuart1
 #define CFG_DEBUG_TRACE_UART    0
 /******************************************************************************
  * USB interface

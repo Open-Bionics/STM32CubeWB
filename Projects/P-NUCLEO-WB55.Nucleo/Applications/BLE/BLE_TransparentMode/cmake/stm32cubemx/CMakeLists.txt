@@ -59,6 +59,8 @@ target_sources(stm32cubemx INTERFACE
     C:/Users/Olly/STM32Cube/Repository/STM32Cube_FW_WB_V1.20.0/Drivers/STM32WBxx_HAL_Driver/Src/stm32wbxx_hal_gpio.c
     C:/Users/Olly/STM32Cube/Repository/STM32Cube_FW_WB_V1.20.0/Drivers/STM32WBxx_HAL_Driver/Src/stm32wbxx_hal_dma.c
     C:/Users/Olly/STM32Cube/Repository/STM32Cube_FW_WB_V1.20.0/Drivers/STM32WBxx_HAL_Driver/Src/stm32wbxx_hal_dma_ex.c
+    C:/Users/Olly/STM32Cube/Repository/STM32Cube_FW_WB_V1.20.0/Drivers/STM32WBxx_HAL_Driver/Src/stm32wbxx_hal_i2c.c
+    C:/Users/Olly/STM32Cube/Repository/STM32Cube_FW_WB_V1.20.0/Drivers/STM32WBxx_HAL_Driver/Src/stm32wbxx_hal_i2c_ex.c
     C:/Users/Olly/STM32Cube/Repository/STM32Cube_FW_WB_V1.20.0/Drivers/STM32WBxx_HAL_Driver/Src/stm32wbxx_hal_pwr.c
     C:/Users/Olly/STM32Cube/Repository/STM32Cube_FW_WB_V1.20.0/Drivers/STM32WBxx_HAL_Driver/Src/stm32wbxx_hal_pwr_ex.c
     C:/Users/Olly/STM32Cube/Repository/STM32Cube_FW_WB_V1.20.0/Drivers/STM32WBxx_HAL_Driver/Src/stm32wbxx_hal_cortex.c

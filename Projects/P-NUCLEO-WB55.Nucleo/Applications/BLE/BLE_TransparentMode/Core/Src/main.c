@@ -42,6 +42,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "led.h"
 
 /* USER CODE END Includes */
 
@@ -141,9 +142,7 @@ int main(void)
   MX_TIM17_Init();
   /* USER CODE BEGIN 2 */
 
-  // start the timer, set 1 LED on and toggle the other
-  HAL_GPIO_WritePin(GPIOA, LED_GREEN_2_Pin, GPIO_PIN_RESET);
-  HAL_TIM_Base_Start_IT(&htim17);
+  LED_Init();
 
   /* USER CODE END 2 */
 
@@ -545,7 +544,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   if (htim == (&htim17))
   {
-    HAL_GPIO_TogglePin(GPIOA, LED_GREEN_1_Pin);
+    LED_Process();
   }
 }
 

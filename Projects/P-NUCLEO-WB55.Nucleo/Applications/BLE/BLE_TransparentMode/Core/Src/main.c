@@ -43,6 +43,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "led.h"
+#include "charger_control.h"
 
 /* USER CODE END Includes */
 
@@ -143,6 +144,11 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   LED_Init();
+  CHGC_Init();
+
+  // only start the timer after LED & CHRG are initialised
+  HAL_TIM_Base_Start_IT(&htim17);
+
 
   /* USER CODE END 2 */
 
@@ -507,6 +513,18 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(MCU_CHG_nDISABLE_GPIO_Port, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : MCU_CHG_INT_Pin */
+  GPIO_InitStruct.Pin = MCU_CHG_INT_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(MCU_CHG_INT_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : MCU_CHG_nPGD_Pin */
+  GPIO_InitStruct.Pin = MCU_CHG_nPGD_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(MCU_CHG_nPGD_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pins : LED_RED_2_Pin LED_GREEN_2_Pin LED_GREEN_1_Pin LED_RED_1_Pin */
   GPIO_InitStruct.Pin = LED_RED_2_Pin|LED_GREEN_2_Pin|LED_GREEN_1_Pin|LED_RED_1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -545,6 +563,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   if (htim == (&htim17))
   {
     LED_Process();
+    CHGC_ChargerStatusMonitoringThread();
   }
 }
 

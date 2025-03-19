@@ -23,7 +23,6 @@ typedef enum LED_COLOUR
 #define SOLID_LED       0
 #define FLASHING_LED    1
 
-extern TIM_HandleTypeDef htim17;
 static bool is_charging = false;
 static led_colour_t current_led_colour[2] = {LED_COLOUR_OFF, LED_COLOUR_OFF};
 
@@ -34,9 +33,8 @@ static void set_led_colour(uint8_t led_num, led_colour_t colour);
  */
 void LED_Init(void)
 {
-    // start the timer, set 1 LED on and toggle the other
+    // set 1 LED on and toggle the other
     set_led_colour(SOLID_LED, LED_COLOUR_GREEN);
-    HAL_TIM_Base_Start_IT(&htim17);
 }
 
 
@@ -69,6 +67,16 @@ void LED_SetCharging(bool charging)
 void LED_Process(void)
 {
     static led_colour_t next_led_colour = LED_COLOUR_GREEN;
+
+    if (is_charging && (LED_COLOUR_GREEN == next_led_colour))
+    {
+        next_led_colour = LED_COLOUR_ORANGE;
+    }
+    else if (!is_charging && (LED_COLOUR_ORANGE == next_led_colour))
+    {
+        next_led_colour = LED_COLOUR_GREEN;
+    }
+
 
     set_led_colour(FLASHING_LED, next_led_colour);
 

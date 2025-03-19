@@ -62,6 +62,10 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define MCU_CHG_nDISABLE_Pin GPIO_PIN_2
 #define MCU_CHG_nDISABLE_GPIO_Port GPIOC
+#define MCU_CHG_INT_Pin GPIO_PIN_3
+#define MCU_CHG_INT_GPIO_Port GPIOC
+#define MCU_CHG_nPGD_Pin GPIO_PIN_0
+#define MCU_CHG_nPGD_GPIO_Port GPIOA
 #define LED_RED_2_Pin GPIO_PIN_10
 #define LED_RED_2_GPIO_Port GPIOA
 #define LED_GREEN_2_Pin GPIO_PIN_11

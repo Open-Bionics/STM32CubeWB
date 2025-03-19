@@ -8,7 +8,7 @@ cmake_minimum_required(VERSION 3.22)
 #
 
 # Setup compiler settings
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
@@ -23,6 +23,9 @@ set(CMAKE_PROJECT_NAME BLE_TransparentMode)
 
 # Include toolchain file
 include("cmake/gcc-arm-none-eabi.cmake")
+
+add_compile_options(-Wno-unused-parameter)
+add_compile_options(-Wformat)
 
 # Enable compile command to ease indexing with e.g. clangd
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
@@ -47,6 +50,8 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
+    "Core/Src/BQ25120A_Battery_Charger.c"
+    "Core/Src/charger_control.c"
     "Core/Src/led.c"
 )
 

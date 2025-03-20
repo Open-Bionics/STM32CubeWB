@@ -1,0 +1,4 @@
+The EMG & EXEC versions of the Transparent Mode firmware are available on the following brances:
+
+- EMG - [Configured_Transparent_Mode_for_OB2_EMG_V4_V5](https://github.com/Open-Bionics/STM32CubeWB/blob/Configured_Transparent_Mode_for_OB2_EMG_V4_V5/Projects/P-NUCLEO-WB55.Nucleo/Applications/BLE/BLE_TransparentMode/Binary/BLE_TransparentMode_OB2_EMG_V4_with_charging.elf) 
+- EXEC [Configured_Transparent_Mode_for_OB2_FRB_V1](https://github.com/Open-Bionics/STM32CubeWB/blob/Configured_Transparent_Mode_for_OB2_FRB_V1/Projects/P-NUCLEO-WB55.Nucleo/Applications/BLE/BLE_TransparentMode/Binary/BLE_TransparentMode_OB2_FRB_V1.elf)
